@@ -1,0 +1,113 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User account settings and biometrics state",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "membership": { "type": "string" },
+        "zenLevel": { "type": "number" },
+        "avatar": { "type": "string" },
+        "notifications": { "type": "string" },
+        "themeMode": { "type": "string" },
+        "smartAlerts": { "type": "boolean" },
+        "sleepCurrent": { "type": "number" },
+        "sleepTarget": { "type": "number" },
+        "stepsCurrent": { "type": "number" },
+        "stepsTarget": { "type": "number" },
+        "waterCurrent": { "type": "number" },
+        "waterTarget": { "type": "number" }
+      },
+      "required": ["uid", "name"]
+    },
+    "Reflection": {
+      "title": "Reflection",
+      "description": "A mindful wellness journal entry",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "date": { "type": "string" },
+        "prompt": { "type": "string" },
+        "response": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "prompt", "response"]
+    },
+    "CirclePost": {
+      "title": "CirclePost",
+      "description": "A post in a community circle",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "circleId": { "type": "string" },
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "authorAvatar": { "type": "string" },
+        "content": { "type": "string" },
+        "timeLabel": { "type": "string" },
+        "likes": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "circleId", "authorId", "authorName", "content", "likes"]
+    },
+    "CircleComment": {
+      "title": "CircleComment",
+      "description": "A comment on a community post",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "postId": { "type": "string" },
+        "circleId": { "type": "string" },
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "postId", "circleId", "authorId", "authorName", "content"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "A message in a private chat or wellness guide session",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "conversationId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "senderAvatar": { "type": "string" },
+        "text": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "timeLabel": { "type": "string" },
+        "isUser": { "type": "boolean" },
+        "isItalic": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "conversationId", "senderId", "senderName", "text", "isUser"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles and settings documents"
+    },
+    "/users/{userId}/reflections/{reflectionId}": {
+      "schema": "Reflection",
+      "description": "User wellness journal and alignment reflections"
+    },
+    "/circles/{circleId}/posts/{postId}": {
+      "schema": "CirclePost",
+      "description": "Posts created by users inside a community circle"
+    },
+    "/circles/{circleId}/posts/{postId}/comments/{commentId}": {
+      "schema": "CircleComment",
+      "description": "Comments on community circle posts"
+    },
+    "/users/{userId}/conversations/{conversationId}/messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Direct and wellness guide message histories"
+    }
+  }
+}

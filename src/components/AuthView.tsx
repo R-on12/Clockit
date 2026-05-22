@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Flower, Mail, Lock, User, Eye, EyeOff, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
-import { UserSettings } from '../types';
+import { Mail, Lock, User, Eye, EyeOff, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
+import { loginWithEmailAndPassword, registerWithEmailAndPassword, loginWithGoogle } from '../firebase';
 
 interface AuthViewProps {
-  onAuthSuccess: (userName: string) => void;
+  onAuthSuccess: (uid: string, userName: string, email: string) => void;
   defaultName: string;
 }
 
@@ -16,7 +16,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, defaultName }
   const [errorMsg, setErrorMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
 
@@ -32,11 +32,48 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, defaultName }
 
     setIsLoading(true);
     
-    // Simulate premium server-side transition timer
-    setTimeout(() => {
+    try {
+      if (isLogin) {
+        const cred = await loginWithEmailAndPassword(email, password);
+        const displayName = cred.user.displayName || name;
+        onAuthSuccess(cred.user.uid, displayName, cred.user.email || email);
+      } else {
+        const cred = await registerWithEmailAndPassword(email, password, name);
+        onAuthSuccess(cred.user.uid, name, cred.user.email || email);
+      }
+    } catch (err: any) {
+      console.error("Auth submit error:", err);
+      // Human-readable errors
+      if (err.code === 'auth/wrong-password') {
+        setErrorMsg('Incorrect credentials. Please verify your secure password.');
+      } else if (err.code === 'auth/user-not-found') {
+        setErrorMsg('No current sanctuary matches this email address.');
+      } else if (err.code === 'auth/email-already-in-use') {
+        setErrorMsg('This email is already linked to another sanctuary.');
+      } else if (err.code === 'auth/weak-password') {
+        setErrorMsg('Your password must contain at least 6 characters.');
+      } else {
+        setErrorMsg(err.message || 'Verification could not be established.');
+      }
+    } finally {
       setIsLoading(false);
-      onAuthSuccess(isLogin ? name : name);
-    }, 1200);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setErrorMsg('');
+    setIsLoading(true);
+    try {
+      const cred = await loginWithGoogle();
+      onAuthSuccess(cred.user.uid, cred.user.displayName || 'Ronnie', cred.user.email || '');
+    } catch (err: any) {
+      console.error("Google login error:", err);
+      if (err.code !== 'auth/popup-closed-by-user') {
+        setErrorMsg(err.message || 'Google verification failed.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const fillDemoCredentials = () => {
@@ -54,8 +91,14 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, defaultName }
         
         {/* Brand Header */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-primary/15 rounded-full mb-4 text-primary relative group">
-            <Flower className="w-8 h-8 group-hover:rotate-45 transition-transform duration-500 text-primary animate-pulse" />
+          <div className="inline-flex items-center justify-center w-14 h-14 bg-primary/10 rounded-full mb-4 overflow-hidden relative group" id="auth-logo-pinching-hand">
+            <img 
+              src="/src/assets/images/pinching_hand_icon_1779464090788.png" 
+              alt="Clockit Pinch Logo" 
+              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" 
+              style={{ filter: 'sepia(0.3) hue-rotate(65deg) saturate(0.8) brightness(0.8) contrast(1.1)' }}
+              referrerPolicy="no-referrer"
+            />
             <span className="absolute inset-0 rounded-full border border-primary/20 animate-ping opacity-25"></span>
           </div>
           <h1 className="text-3xl font-headline font-extrabold text-primary tracking-tight">Clockit</h1>
@@ -190,6 +233,25 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, defaultName }
             )}
           </button>
         </form>
+
+        {/* Google Sign In option */}
+        <div className="mt-4">
+          <button
+            type="button"
+            disabled={isLoading}
+            onClick={handleGoogleSignIn}
+            className="w-full bg-surface-container-low hover:bg-surface-container border border-outline-variant/15 text-on-surface font-bold py-3 px-6 rounded-2xl text-xs font-label uppercase tracking-widest transition-all duration-200 flex items-center justify-center gap-2.5 active:scale-[0.98] disabled:opacity-50"
+            id="google-login-button"
+          >
+            <svg className="w-4 h-4 text-on-surface" viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
+            </svg>
+            <span>Sign In with Google</span>
+          </button>
+        </div>
 
         {/* Demo login shortcuts to streamline user testing */}
         <div className="mt-8 pt-6 border-t border-outline-variant/10 text-center">

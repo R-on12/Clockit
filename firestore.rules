@@ -1,0 +1,155 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global safety net: Default deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+    
+    // Reusable, hardened global helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    
+    // User schema verification
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'name'])
+        && data.uid is string
+        && data.uid.size() <= 128
+        && data.name is string
+        && data.name.size() <= 100
+        && (!('membership' in data) || (data.membership is string && data.membership.size() <= 50))
+        && (!('zenLevel' in data) || (data.zenLevel is number && data.zenLevel >= 0))
+        && (!('avatar' in data) || (data.avatar is string && data.avatar.size() <= 1000))
+        && (!('notifications' in data) || (data.notifications is string && data.notifications.size() <= 50))
+        && (!('themeMode' in data) || (data.themeMode is string && data.themeMode.size() <= 20))
+        && (!('smartAlerts' in data) || (data.smartAlerts is bool))
+        && (!('sleepCurrent' in data) || (data.sleepCurrent is number))
+        && (!('sleepTarget' in data) || (data.sleepTarget is number))
+        && (!('stepsCurrent' in data) || (data.stepsCurrent is number))
+        && (!('stepsTarget' in data) || (data.stepsTarget is number))
+        && (!('waterCurrent' in data) || (data.waterCurrent is number))
+        && (!('waterTarget' in data) || (data.waterTarget is number));
+    }
+
+    // Reflection schema verification
+    function isValidReflection(data) {
+      return data.keys().hasAll(['id', 'userId', 'prompt', 'response'])
+        && data.id is string
+        && data.id.size() <= 128
+        && data.userId is string
+        && data.userId.size() <= 128
+        && data.prompt is string
+        && data.prompt.size() <= 1000
+        && data.response is string
+        && data.response.size() <= 5000;
+    }
+
+    // Community post verification
+    function isValidCirclePost(data, authorId) {
+      return data.keys().hasAll(['id', 'circleId', 'authorId', 'authorName', 'content', 'likes'])
+        && data.id is string
+        && data.id.size() <= 128
+        && data.circleId is string
+        && data.circleId.size() <= 128
+        && data.authorId == authorId
+        && data.authorName is string
+        && data.authorName.size() <= 100
+        && data.content is string
+        && data.content.size() <= 10000
+        && data.likes is number;
+    }
+
+    // Comment verification
+    function isValidCircleComment(data, authorId) {
+      return data.keys().hasAll(['id', 'postId', 'circleId', 'authorId', 'authorName', 'content'])
+        && data.id is string
+        && data.id.size() <= 128
+        && data.postId is string
+        && data.postId.size() <= 128
+        && data.circleId is string
+        && data.circleId.size() <= 128
+        && data.authorId == authorId
+        && data.authorName is string
+        && data.authorName.size() <= 100
+        && data.content is string
+        && data.content.size() <= 5000;
+    }
+
+    // Message validation
+    function isValidChatMessage(data) {
+      return data.keys().hasAll(['id', 'conversationId', 'senderId', 'senderName', 'text', 'isUser'])
+        && data.id is string
+        && data.id.size() <= 128
+        && data.conversationId is string
+        && data.conversationId.size() <= 128
+        && data.senderId is string
+        && data.senderId.size() <= 128
+        && data.senderName is string
+        && data.senderName.size() <= 100
+        && data.text is string
+        && data.text.size() <= 5000
+        && data.isUser is bool;
+    }
+
+    // --- Path Rules Enforcements ---
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && isValidUser(request.resource.data)
+                    && request.resource.data.uid == resource.data.uid;
+      allow delete: if false;
+
+      match /reflections/{reflectionId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidReflection(request.resource.data) 
+                      && request.resource.data.userId == userId;
+        allow update: if isOwner(userId) && isValidReflection(request.resource.data)
+                      && request.resource.data.userId == userId;
+        allow delete: if isOwner(userId);
+      }
+
+      match /conversations/{conversationId}/messages/{messageId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidChatMessage(request.resource.data);
+        allow update: if false; // Messages are immutable once sent
+        allow delete: if isOwner(userId);
+      }
+    }
+
+    match /circles/{circleId} {
+      allow read: if isSignedIn();
+      allow write: if false; // Circles list defined by server/curators
+
+      match /posts/{postId} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn() && isValidCirclePost(request.resource.data, request.auth.uid);
+        allow update: if isSignedIn() 
+                      && (
+                        // Author can completely edit or mutate with keys constraint
+                        (resource.data.authorId == request.auth.uid && isValidCirclePost(request.resource.data, request.auth.uid))
+                        // Or non-authors can only alter the "likes" property
+                        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']))
+                      );
+        allow delete: if isSignedIn() && resource.data.authorId == request.auth.uid;
+
+        match /comments/{commentId} {
+          allow read: if isSignedIn();
+          allow create: if isSignedIn() && isValidCircleComment(request.resource.data, request.auth.uid);
+          allow update: if isSignedIn() && resource.data.authorId == request.auth.uid && isValidCircleComment(request.resource.data, request.auth.uid);
+          allow delete: if isSignedIn() && resource.data.authorId == request.auth.uid;
+        }
+      }
+    }
+  }
+}

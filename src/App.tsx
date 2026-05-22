@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, MessageSquare, Users2, Settings, TrendingUp, Flower, Sparkles, UserCheck } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, Users2, Settings, TrendingUp, Sparkles, UserCheck } from 'lucide-react';
 import {
   initialConversations,
   initialCircles,
@@ -17,8 +17,24 @@ import { SettingsView } from './components/SettingsView';
 import { InsightsView } from './components/InsightsView';
 import { AuthView } from './components/AuthView';
 
+// Firebase Client SDK Integration imports
+import { onAuthStateChanged } from 'firebase/auth';
+import { 
+  doc, 
+  setDoc, 
+  getDoc, 
+  collection, 
+  onSnapshot, 
+  query, 
+  orderBy, 
+  getDocFromServer,
+  updateDoc
+} from 'firebase/firestore';
+import { db, auth, logoutUser, handleFirestoreError, OperationType } from './firebase';
+
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const [currentUserUid, setCurrentUserUid] = useState<string | null>(null);
   const [currentTab, setCurrentTab] = useState<string>('home');
   const [conversations, setConversations] = useState<Conversation[]>(initialConversations);
   const [circles, setCircles] = useState<CommunityCircle[]>(initialCircles);
@@ -28,11 +44,263 @@ export default function App() {
   const [activeConversationId, setActiveConversationId] = useState<string>('julian_m');
   const [showNewChatOverlay, setShowNewChatOverlay] = useState<boolean>(false);
 
-  // Auto-chuckle unread count notification chimes or updates
+  // 1. Verify Firestore Connection on Boot
   useEffect(() => {
-    // We can simulate an occasional quiet atmospheric community post or response 
+    async function testConnection() {
+      try {
+        await getDocFromServer(doc(db, 'test', 'connection'));
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('the client is offline')) {
+          console.error("Please check your Firebase configuration.");
+        }
+      }
+    }
+    testConnection();
+  }, []);
+
+  // 2. Realtime Auth State Synchronization
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        setCurrentUserUid(user.uid);
+        setIsLoggedIn(true);
+        await loadOrCreateUser(user.uid, user.displayName || 'Ronnie');
+      } else {
+        setCurrentUserUid(null);
+        setIsLoggedIn(false);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Sync / Initialize User Profile Settings and Vitals in Firestore
+  const loadOrCreateUser = async (uid: string, initialName: string) => {
+    const userDocRef = doc(db, 'users', uid);
+    try {
+      const userDoc = await getDoc(userDocRef);
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        setUserSettings({
+          name: data.name || initialName,
+          membership: data.membership || 'Premium Member',
+          zenLevel: data.zenLevel ?? 12,
+          avatar: data.avatar || initialUserSettings.avatar,
+          notifications: data.notifications || 'Smart Alerts',
+          themeMode: (data.themeMode as 'light' | 'dark' | 'sepia') || 'light',
+          smartAlerts: data.smartAlerts ?? true,
+        });
+        setVitalState({
+          sleep: { current: data.sleepCurrent ?? 7.2, target: data.sleepTarget ?? 8.0, unit: 'h' },
+          steps: { current: data.stepsCurrent ?? 4.8, target: data.stepsTarget ?? 10.0, unit: 'k' },
+          water: { current: data.waterCurrent ?? 1.4, target: data.waterTarget ?? 2.0, unit: 'L' }
+        });
+      } else {
+        const defaultDoc = {
+          uid: uid,
+          name: initialName,
+          membership: 'Premium Member',
+          zenLevel: 12,
+          avatar: initialUserSettings.avatar,
+          notifications: 'Smart Alerts',
+          themeMode: 'light',
+          smartAlerts: true,
+          sleepCurrent: 7.2,
+          sleepTarget: 8.0,
+          stepsCurrent: 4.8,
+          stepsTarget: 10.0,
+          waterCurrent: 1.4,
+          waterTarget: 2.0
+        };
+        await setDoc(userDocRef, defaultDoc);
+        setUserSettings({
+          name: initialName,
+          membership: 'Premium Member',
+          zenLevel: 12,
+          avatar: initialUserSettings.avatar,
+          notifications: 'Smart Alerts',
+          themeMode: 'light',
+          smartAlerts: true,
+        });
+        setVitalState(initialVitalState);
+      }
+    } catch (error) {
+      handleFirestoreError(error, OperationType.GET, `users/${uid}`);
+    }
+  };
+
+  // 3. Realtime Reflections Listener & Seeder
+  useEffect(() => {
+    if (!currentUserUid) return;
+
+    const reflectionsRef = collection(db, 'users', currentUserUid, 'reflections');
+    const q = query(reflectionsRef, orderBy('createdAt', 'desc'));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const loadedReflections: Reflection[] = [];
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        loadedReflections.push({
+          id: doc.id,
+          date: data.date || '',
+          prompt: data.prompt || '',
+          response: data.response || ''
+        });
+      });
+
+      if (loadedReflections.length === 0) {
+        setReflections(initialReflections);
+        initialReflections.forEach(ref => {
+          const refDocRef = doc(db, 'users', currentUserUid, 'reflections', ref.id);
+          setDoc(refDocRef, {
+            id: ref.id,
+            userId: currentUserUid,
+            date: ref.date,
+            prompt: ref.prompt,
+            response: ref.response,
+            createdAt: new Date().toISOString()
+          }).catch(err => {
+            handleFirestoreError(err, OperationType.CREATE, `users/${currentUserUid}/reflections/${ref.id}`);
+          });
+        });
+      } else {
+        setReflections(loadedReflections);
+      }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, `users/${currentUserUid}/reflections`);
+    });
+
+    return () => unsubscribe();
+  }, [currentUserUid]);
+
+  // 4. Realtime Chat Messages Synchronizer & Pre-populate Default Dialogues
+  useEffect(() => {
+    if (!currentUserUid) return;
+
+    const messagesRef = collection(db, 'users', currentUserUid, 'conversations', activeConversationId, 'messages');
+    const q = query(messagesRef, orderBy('createdAt', 'asc'));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const loadedMessages: Message[] = [];
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        loadedMessages.push({
+          id: doc.id,
+          senderId: data.senderId,
+          senderName: data.senderName,
+          senderAvatar: data.senderAvatar,
+          text: data.text,
+          timestamp: data.timestamp,
+          timeLabel: data.timeLabel,
+          isUser: data.isUser,
+          isItalic: data.isItalic
+        });
+      });
+
+      if (loadedMessages.length > 0) {
+        setConversations(prev => prev.map(c => {
+          if (c.id === activeConversationId) {
+            return {
+              ...c,
+              messages: loadedMessages,
+              lastMessage: loadedMessages[loadedMessages.length - 1].text,
+              timeLabel: 'Active'
+            };
+          }
+          return c;
+        }));
+      } else {
+        const defaultConv = initialConversations.find(c => c.id === activeConversationId);
+        if (defaultConv && defaultConv.messages.length > 0) {
+          defaultConv.messages.forEach(async (msg, index) => {
+            const msgDocRef = doc(db, 'users', currentUserUid, 'conversations', activeConversationId, 'messages', msg.id || `msg_init_${index}`);
+            await setDoc(msgDocRef, {
+              id: msg.id || `msg_init_${index}`,
+              conversationId: activeConversationId,
+              senderId: msg.senderId,
+              senderName: msg.senderName,
+              senderAvatar: msg.senderAvatar || '',
+              text: msg.text,
+              timestamp: msg.timestamp,
+              timeLabel: msg.timeLabel,
+              isUser: msg.isUser,
+              isItalic: msg.isItalic || false,
+              createdAt: new Date(Date.now() - (defaultConv.messages.length - index) * 60000).toISOString()
+            });
+          });
+        }
+      }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, `users/${currentUserUid}/conversations/${activeConversationId}/messages`);
+    });
+
+    return () => unsubscribe();
+  }, [currentUserUid, activeConversationId]);
+
+  // 5. Realtime Circle Posts & Comments Subscriber
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    const unsubscribes = circles.map(circle => {
+      const postsRef = collection(db, 'circles', circle.id, 'posts');
+      const q = query(postsRef, orderBy('createdAt', 'desc'));
+
+      return onSnapshot(q, (snapshot) => {
+        const loadedPosts: any[] = [];
+        snapshot.forEach(postDoc => {
+          const data = postDoc.data();
+          loadedPosts.push({
+            id: postDoc.id,
+            authorName: data.authorName,
+            authorAvatar: data.authorAvatar,
+            content: data.content,
+            timeLabel: data.timeLabel || 'Recent',
+            likes: data.likes || 0,
+            hasLiked: false,
+            comments: data.comments || []
+          });
+        });
+
+        if (loadedPosts.length > 0) {
+          setCircles(prev => prev.map(c => {
+            if (c.id === circle.id) {
+              return {
+                ...c,
+                posts: loadedPosts
+              };
+            }
+            return c;
+          }));
+        } else {
+          const defaultCircle = initialCircles.find(c => c.id === circle.id);
+          if (defaultCircle && defaultCircle.posts.length > 0) {
+            defaultCircle.posts.forEach(async (post, idx) => {
+              const postDocRef = doc(db, 'circles', circle.id, 'posts', post.id || `post_${idx}`);
+              await setDoc(postDocRef, {
+                id: post.id || `post_${idx}`,
+                circleId: circle.id,
+                authorId: 'system_seed',
+                authorName: post.authorName,
+                authorAvatar: post.authorAvatar,
+                content: post.content,
+                timeLabel: post.timeLabel,
+                likes: post.likes || 0,
+                comments: post.comments || [],
+                createdAt: new Date(Date.now() - (idx + 1) * 3600000).toISOString()
+              });
+            });
+          }
+        }
+      }, (error) => {
+        handleFirestoreError(error, OperationType.LIST, `circles/${circle.id}/posts`);
+      });
+    });
+
+    return () => unsubscribes.forEach(unsub => unsub());
+  }, [isLoggedIn]);
+
+  // Atmospheric guide notifications backport 
+  useEffect(() => {
     const timer = setTimeout(() => {
-      // Simulate Wellness Guide sending a peaceful greeting if active conversation is not wellness_guide
       setConversations(prev => prev.map(c => {
         if (c.id === 'wellness_guide' && currentTab !== 'active_guide_chat' && activeConversationId !== 'wellness_guide') {
           return {
@@ -49,7 +317,7 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [currentTab, activeConversationId]);
 
-  // Handle Vitality State Increments
+  // Handle Vitality State Increments with firestore sync
   const handleIncrementState = (metric: 'sleep' | 'steps' | 'water') => {
     setVitalState(prev => {
       const target = prev[metric].target;
@@ -59,44 +327,58 @@ export default function App() {
         nextVal = parseFloat((prev[metric].current - target).toFixed(1));
         if (nextVal < 0) nextVal = 0;
       }
-      return {
+      const updated = {
         ...prev,
         [metric]: {
           ...prev[metric],
           current: nextVal
         }
       };
+
+      if (currentUserUid) {
+        const userDocRef = doc(db, 'users', currentUserUid);
+        const fieldMap = {
+          sleep: 'sleepCurrent',
+          steps: 'stepsCurrent',
+          water: 'waterCurrent'
+        };
+        setDoc(userDocRef, {
+          [fieldMap[metric]]: nextVal
+        }, { merge: true }).catch(err => {
+          handleFirestoreError(err, OperationType.UPDATE, `users/${currentUserUid}`);
+        });
+      }
+
+      return updated;
     });
   };
 
   // Chat message submission
-  const handleSendMessage = (text: string) => {
-    const newMessage: Message = {
-      id: `msg_${Date.now()}`,
-      senderId: 'user',
+  const handleSendMessage = async (text: string) => {
+    const msgId = `msg_${Date.now()}`;
+    const newMessage = {
+      id: msgId,
+      conversationId: activeConversationId,
+      senderId: currentUserUid || 'user',
       senderName: userSettings.name,
+      senderAvatar: userSettings.avatar,
       text,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       timeLabel: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isUser: true
+      isUser: true,
+      isItalic: false,
+      createdAt: new Date().toISOString()
     };
 
-    setConversations(prev => prev.map(c => {
-      if (c.id === activeConversationId) {
-        const updatedMsgs = [...c.messages, newMessage];
-        return {
-          ...c,
-          messages: updatedMsgs,
-          lastMessage: text,
-          timeLabel: 'JUST NOW',
-          unreadCount: 0
-        };
-      }
-      return c;
-    }));
+    if (currentUserUid) {
+      const msgDocRef = doc(db, 'users', currentUserUid, 'conversations', activeConversationId, 'messages', msgId);
+      await setDoc(msgDocRef, newMessage).catch(err => {
+        handleFirestoreError(err, OperationType.CREATE, `users/${currentUserUid}/conversations/${activeConversationId}/messages/${msgId}`);
+      });
+    }
 
     // Trigger AI Simulated response
-    setTimeout(() => {
+    setTimeout(async () => {
       const lowerText = text.toLowerCase();
       let replyText = `I hear you, ${userSettings.name}. In this digital sanctuary, every thought has room to rest. Let's take a peaceful moment to align our breath.`;
 
@@ -112,86 +394,122 @@ export default function App() {
         replyText = `A pristine stream keeps the heart buoyant. Hydrating steadily at intervals clears neurological strain. You are currently at ${vitalState.water.current}L today! Keep a goblet near.`;
       }
 
-      const companionReply: Message = {
-        id: `reply_${Date.now()}`,
+      const replyId = `reply_${Date.now()}`;
+      const companionReply = {
+        id: replyId,
+        conversationId: activeConversationId,
         senderId: activeConversationId,
         senderName: activeConversationId === 'julian_m' ? 'Julian M.' : 'Wellness Guide',
-        senderAvatar: activeConversationId === 'julian_m' 
+        senderAvatar: activeConversationId === 'julian_m'
           ? 'https://lh3.googleusercontent.com/aida-public/AB6AXuDtbc2t1r8Vs-ObpR8Uu7wZ9i6qL3Hp24MzcsHBVLd8W5xSn7KKoiC2c58Wx337GU1RweBeACbHt-eyZKbVTL70rPKnaeenqQ-tyV-ySd2KPKWD_XbQgO7UW8p8tYu3c8Sj88Gnoh1SJ3dVxp2HIvizMkSeJSphq-1M1bTUcegVn8XagrGMRJYTZmnBm3z-yJ4-yanb__8KRmu9Q1OuBi6erzS8qEoGGEAGk8LkESw5PPuvNxMxpt27m4deez2zBzU3pQFzjmI9JPzb'
           : 'https://lh3.googleusercontent.com/aida-public/AB6AXuCE54NSPHbX_rB2bvgKiljuvd5-JlEpnq-PUTJroJhuoDHf8xcICcz1SdKGAXQTPgd9Lnf_1RQ2gK2uGfCED5UyyvSaHTvRE5Tz7QlNVB2bwiWB7kMRx-wa1malx4rt3pw8wlFV29vnBaAjSHXeef8ImZjwK3zi6McOGsVOQfVV6TcJlBsCQeAZcMtfwmzbjPQi8z6lxFlk80nkQMGfINcD8OkpUc_O9sqIAmBZPmOFzanAnArGrcRF8NtpqJneZWDZJSb8xU980Xue',
         text: replyText,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         timeLabel: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        isUser: false
+        isUser: false,
+        isItalic: false,
+        createdAt: new Date().toISOString()
       };
 
-      setConversations(prev => prev.map(c => {
-        if (c.id === activeConversationId) {
-          return {
-            ...c,
-            messages: [...c.messages, companionReply],
-            lastMessage: replyText,
-            timeLabel: 'JUST NOW',
-            unreadCount: 0
-          };
-        }
-        return c;
-      }));
+      if (currentUserUid) {
+        const replyDocRef = doc(db, 'users', currentUserUid, 'conversations', activeConversationId, 'messages', replyId);
+        await setDoc(replyDocRef, companionReply).catch(err => {
+          handleFirestoreError(err, OperationType.CREATE, `users/${currentUserUid}/conversations/${activeConversationId}/messages/${replyId}`);
+        });
+      }
     }, 1500);
   };
 
   // Add a new reflection response
-  const handleSaveReflection = (newRef: Reflection) => {
+  const handleSaveReflection = async (newRef: Reflection) => {
     setReflections(prev => [newRef, ...prev]);
-    // Gently increase Zen Level to congratulate mindfulness
-    setUserSettings(prev => ({
-      ...prev,
-      zenLevel: prev.zenLevel + 1
-    }));
+    setUserSettings(prev => {
+      const updated = {
+        ...prev,
+        zenLevel: prev.zenLevel + 1
+      };
+
+      if (currentUserUid) {
+        const refDocRef = doc(db, 'users', currentUserUid, 'reflections', newRef.id);
+        setDoc(refDocRef, {
+          id: newRef.id,
+          userId: currentUserUid,
+          date: newRef.date,
+          prompt: newRef.prompt,
+          response: newRef.response,
+          createdAt: new Date().toISOString()
+        }).catch(err => {
+          handleFirestoreError(err, OperationType.CREATE, `users/${currentUserUid}/reflections/${newRef.id}`);
+        });
+
+        const userDocRef = doc(db, 'users', currentUserUid);
+        setDoc(userDocRef, { zenLevel: updated.zenLevel }, { merge: true }).catch(err => {
+          handleFirestoreError(err, OperationType.UPDATE, `users/${currentUserUid}`);
+        });
+      }
+      return updated;
+    });
   };
 
   // Update user profile/nickname
   const handleUpdateUserSettings = (newSettings: Partial<UserSettings>) => {
-    setUserSettings(prev => ({ ...prev, ...newSettings }));
+    setUserSettings(prev => {
+      const updated = { ...prev, ...newSettings };
+      if (currentUserUid) {
+        const userDocRef = doc(db, 'users', currentUserUid);
+        setDoc(userDocRef, {
+          name: updated.name,
+          membership: updated.membership,
+          zenLevel: updated.zenLevel,
+          avatar: updated.avatar,
+          notifications: updated.notifications,
+          themeMode: updated.themeMode,
+          smartAlerts: updated.smartAlerts
+        }, { merge: true }).catch(err => {
+          handleFirestoreError(err, OperationType.UPDATE, `users/${currentUserUid}`);
+        });
+      }
+      return updated;
+    });
   };
 
   // Circle / Community Posts Actions
-  const handleAddPost = (circleId: string, content: string) => {
+  const handleAddPost = async (circleId: string, content: string) => {
+    const postId = `post_${Date.now()}`;
     const newPost = {
-      id: `post_${Date.now()}`,
+      id: postId,
+      circleId,
+      authorId: currentUserUid || 'anonymous',
       authorName: `${userSettings.name} Rose`,
       authorAvatar: userSettings.avatar,
       content,
       timeLabel: 'Just Now',
       likes: 0,
-      hasLiked: false,
-      comments: []
+      createdAt: new Date().toISOString()
     };
 
-    setCircles(prev => prev.map(c => {
-      if (c.id === circleId) {
-        return {
-          ...c,
-          posts: [newPost, ...c.posts]
-        };
-      }
-      return c;
-    }));
+    const postDocRef = doc(db, 'circles', circleId, 'posts', postId);
+    await setDoc(postDocRef, newPost).catch(err => {
+      handleFirestoreError(err, OperationType.CREATE, `circles/${circleId}/posts/${postId}`);
+    });
   };
 
-  const handleLikePost = (circleId: string, postId: string) => {
+  const handleLikePost = async (circleId: string, postId: string) => {
+    const activeCircle = circles.find(c => c.id === circleId);
+    if (!activeCircle) return;
+    const activePost = activeCircle.posts.find(p => p.id === postId);
+    if (!activePost) return;
+
+    const liked = !activePost.hasLiked;
+    const nextLikes = activePost.likes + (liked ? 1 : -1);
+
     setCircles(prev => prev.map(c => {
       if (c.id === circleId) {
         return {
           ...c,
           posts: c.posts.map(p => {
             if (p.id === postId) {
-              const liked = !p.hasLiked;
-              return {
-                ...p,
-                hasLiked: liked,
-                likes: p.likes + (liked ? 1 : -1)
-              };
+              return { ...p, hasLiked: liked, likes: nextLikes };
             }
             return p;
           })
@@ -199,9 +517,21 @@ export default function App() {
       }
       return c;
     }));
+
+    const postDocRef = doc(db, 'circles', circleId, 'posts', postId);
+    await updateDoc(postDocRef, {
+      likes: nextLikes
+    }).catch(err => {
+      handleFirestoreError(err, OperationType.UPDATE, `circles/${circleId}/posts/${postId}`);
+    });
   };
 
-  const handleAddComment = (circleId: string, postId: string, commentContent: string) => {
+  const handleAddComment = async (circleId: string, postId: string, commentContent: string) => {
+    const activeCircle = circles.find(c => c.id === circleId);
+    if (!activeCircle) return;
+    const activePost = activeCircle.posts.find(p => p.id === postId);
+    if (!activePost) return;
+
     const newComment = {
       id: `comment_${Date.now()}`,
       authorName: userSettings.name,
@@ -209,16 +539,15 @@ export default function App() {
       timeLabel: 'Just Now'
     };
 
+    const nextComments = [...(activePost.comments || []), newComment];
+
     setCircles(prev => prev.map(c => {
       if (c.id === circleId) {
         return {
           ...c,
           posts: c.posts.map(p => {
             if (p.id === postId) {
-              return {
-                ...p,
-                comments: [...p.comments, newComment]
-              };
+              return { ...p, comments: nextComments };
             }
             return p;
           })
@@ -226,6 +555,13 @@ export default function App() {
       }
       return c;
     }));
+
+    const postDocRef = doc(db, 'circles', circleId, 'posts', postId);
+    await updateDoc(postDocRef, {
+      comments: nextComments
+    }).catch(err => {
+      handleFirestoreError(err, OperationType.UPDATE, `circles/${circleId}/posts/${postId}`);
+    });
   };
 
   // Switcher Visual tab routing Helper
@@ -233,7 +569,6 @@ export default function App() {
     if (tab === 'chat_wellness') {
       setActiveConversationId('wellness_guide');
       setCurrentTab('active_guide_chat');
-      // Set unread count to 0 when opened
       setConversations(prev => prev.map(c => c.id === 'wellness_guide' ? { ...c, unreadCount: 0 } : c));
     } else {
       setCurrentTab(tab);
@@ -247,7 +582,8 @@ export default function App() {
   };
 
   // Sign out simulation
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
+    await logoutUser();
     setVitalState(initialVitalState);
     setCurrentTab('home');
     setIsLoggedIn(false);
@@ -295,9 +631,10 @@ export default function App() {
     return (
       <AuthView 
         defaultName={userSettings.name} 
-        onAuthSuccess={(newName) => { 
-          setUserSettings(prev => ({ ...prev, name: newName })); 
+        onAuthSuccess={async (uid, userName, email) => { 
+          setCurrentUserUid(uid);
           setIsLoggedIn(true); 
+          await loadOrCreateUser(uid, userName);
         }} 
       />
     );
@@ -309,8 +646,14 @@ export default function App() {
       {currentTab !== 'active_guide_chat' && (
         <header className="sticky top-0 z-50 px-6 py-4 flex items-center justify-between glass-pill transition-all" id="app-primary-sticky-header">
           <div className="flex items-center gap-4">
-            <button className="w-10 h-10 flex items-center justify-center text-primary group" id="main-sidebar-hamburger">
-              <Flower className="w-6 h-6 group-hover:rotate-12 transition-transform text-primary animate-pulse" />
+            <button className="w-10 h-10 flex items-center justify-center rounded-full overflow-hidden group" id="main-sidebar-hamburger">
+              <img 
+                src="/src/assets/images/pinching_hand_icon_1779464090788.png" 
+                alt="Clockit Pinch Logo" 
+                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                style={{ filter: 'sepia(0.3) hue-rotate(65deg) saturate(0.8) brightness(0.8) contrast(1.1)' }}
+                referrerPolicy="no-referrer"
+              />
             </button>
             <span className="text-xl font-headline tracking-tight text-primary font-bold">Clockit</span>
           </div>
