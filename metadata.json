@@ -1,0 +1,6 @@
+{
+  "name": "Clockit",
+  "description": "Clockit digital wellness sanctuary. Mindful journaling reflections, vitality biometrics tracking, and intimate community connection circles.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
