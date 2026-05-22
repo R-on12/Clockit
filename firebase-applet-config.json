@@ -1,10 +1,10 @@
 {
-  "projectId": "crafty-bastion-l8gvj",
-  "appId": "1:705550528330:web:6853f1e8f5c50692f91bb3",
-  "apiKey": "AIzaSyDayTLlJpybW1HQNZfu_2tbID_m9Xa_h-g",
-  "authDomain": "crafty-bastion-l8gvj.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-5205a3f3-211d-44e7-be98-951f65f92fba",
-  "storageBucket": "crafty-bastion-l8gvj.firebasestorage.app",
-  "messagingSenderId": "705550528330",
+  "projectId": "gen-lang-client-0331619101",
+  "appId": "1:227152778484:web:8ad1f20e8da7175e7b7aa1",
+  "apiKey": "AIzaSyAtF0tZZmp7mGwdxa8hZpIttum_KvpOK6U",
+  "authDomain": "gen-lang-client-0331619101.firebaseapp.com",
+  "firestoreDatabaseId": "ai-studio-0ed512b0-8c02-49e2-93b9-32ca42dcb1cb",
+  "storageBucket": "gen-lang-client-0331619101.firebasestorage.app",
+  "messagingSenderId": "227152778484",
   "measurementId": ""
 }
