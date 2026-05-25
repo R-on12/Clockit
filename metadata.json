@@ -1,6 +1,6 @@
 {
   "name": "Clockit",
-  "description": "Clockit digital wellness sanctuary. Mindful journaling reflections, vitality biometrics tracking, and intimate community connection circles.",
-  "requestFramePermissions": [],
+  "description": "Clockit digital wellness sanctuary with real-time private messaging, group chats, voice/video calls, AI translation, moderation tools, and public communities.",
+  "requestFramePermissions": ["camera", "microphone"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

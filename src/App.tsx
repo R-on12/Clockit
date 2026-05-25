@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, MessageSquare, Users2, Settings, TrendingUp, Sparkles, UserCheck } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, Users2, Settings, TrendingUp, Sparkles, UserCheck, X } from 'lucide-react';
 import {
   initialConversations,
   initialCircles,
@@ -44,7 +44,33 @@ export default function App() {
   const [activeConversationId, setActiveConversationId] = useState<string>('julian_m');
   const [showNewChatOverlay, setShowNewChatOverlay] = useState<boolean>(false);
 
-  // 1. Verify Firestore Connection on Boot
+  // Expanded group and notifications state hooks
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [newChatType, setNewChatType] = useState<'direct' | 'group'>('direct');
+  const [selectedGroupUsers, setSelectedGroupUsers] = useState<string[]>([]);
+  const [groupChatTitle, setGroupChatTitle] = useState<string>('');
+
+  // 1. Live SSE Notification Subscriber Feed
+  useEffect(() => {
+    const sse = new EventSource('/api/stream-notifications');
+    sse.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data && data.type !== 'connect') {
+          setNotifications(prev => [data, ...prev].slice(0, 5));
+          // Slide-out after fading
+          setTimeout(() => {
+            setNotifications(prev => prev.filter(n => n.id !== data.id));
+          }, 4000);
+        }
+      } catch (err) {
+        console.warn("SSE global server message queue synchronizing...", err);
+      }
+    };
+    return () => sse.close();
+  }, []);
+
+  // Verify Firestore Connection on Boot
   useEffect(() => {
     async function testConnection() {
       try {
@@ -354,7 +380,7 @@ export default function App() {
   };
 
   // Chat message submission
-  const handleSendMessage = async (text: string) => {
+  const handleSendMessage = async (text: string, mediaUrl?: string) => {
     const msgId = `msg_${Date.now()}`;
     const newMessage = {
       id: msgId,
@@ -363,6 +389,7 @@ export default function App() {
       senderName: userSettings.name,
       senderAvatar: userSettings.avatar,
       text,
+      mediaUrl: mediaUrl || '',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       timeLabel: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isUser: true,
@@ -375,6 +402,36 @@ export default function App() {
       await setDoc(msgDocRef, newMessage).catch(err => {
         handleFirestoreError(err, OperationType.CREATE, `users/${currentUserUid}/conversations/${activeConversationId}/messages/${msgId}`);
       });
+    } else {
+      // Local fallback for quick preview mapping
+      setConversations(prev => prev.map(c => {
+        if (c.id === activeConversationId) {
+          const updatedMessages = [...c.messages, newMessage];
+          return {
+            ...c,
+            messages: updatedMessages,
+            lastMessage: text || 'Media Shared',
+            timeLabel: 'Active'
+          };
+        }
+        return c;
+      }));
+    }
+
+    // Dispatch real-time alert through server SSE stream
+    try {
+      await fetch('/api/dispatch-notification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: `Message from ${userSettings.name}`,
+          body: text ? (text.substring(0, 42) + (text.length > 42 ? "..." : "")) : "Shared an attachment media image",
+          conversationId: activeConversationId,
+          type: "message"
+        })
+      });
+    } catch (e) {
+      console.warn("Notification dispatch stream waiting...");
     }
 
     // Trigger AI Simulated response
@@ -416,7 +473,34 @@ export default function App() {
         await setDoc(replyDocRef, companionReply).catch(err => {
           handleFirestoreError(err, OperationType.CREATE, `users/${currentUserUid}/conversations/${activeConversationId}/messages/${replyId}`);
         });
+      } else {
+        setConversations(prev => prev.map(c => {
+          if (c.id === activeConversationId) {
+            return {
+              ...c,
+              messages: [...c.messages, companionReply],
+              lastMessage: replyText,
+              timeLabel: 'Active'
+            };
+          }
+          return c;
+        }));
       }
+
+      // Relay answer incoming notification alert
+      try {
+        await fetch('/api/dispatch-notification', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: companionReply.senderName,
+            body: companionReply.text.substring(0, 42) + (companionReply.text.length > 42 ? "..." : ""),
+            conversationId: activeConversationId,
+            type: "reply"
+          })
+        });
+      } catch (e) {}
+
     }, 1500);
   };
 
@@ -599,9 +683,9 @@ export default function App() {
     const newConv: Conversation = {
       id: customId,
       name,
-      avatar: '', // JL/Letter avatar
+      avatar: '', 
       isGroup: false,
-      lastMessage: 'A new silent channel formed.',
+      lastMessage: 'A new silent channels formed.',
       unreadCount: 0,
       timeLabel: 'JUST NOW',
       online: true,
@@ -621,6 +705,43 @@ export default function App() {
     setConversations(prev => [newConv, ...prev]);
     setActiveConversationId(customId);
     setShowNewChatOverlay(false);
+    setCurrentTab('active_guide_chat');
+  };
+
+  const handleCreateGroupConversation = () => {
+    if (!groupChatTitle.trim() || selectedGroupUsers.length === 0) return;
+
+    const customId = `group_${Date.now()}`;
+    const newConv: Conversation = {
+      id: customId,
+      name: groupChatTitle,
+      avatar: '',
+      isGroup: true,
+      groupAvatars: [
+        'https://lh3.googleusercontent.com/aida-public/AB6AXuADDHRtSyCcVR7LVA85peEf_Y3zaB8xa7uVlF6wUhh_8RZYL9-COUl5KEwfKAlGESqDnyW3FqIeHB_pQmIerHV1EqfqZCuG0-x1SOG3r0i81xTGQgoaqY5lzjyVYvZ0HfVH7h67HpHg1uIdiEoj13KqOAu5fSHkL_rWMI34y1g-7k9jFykEWv6YUp3gNJoMWVSWCDLZfCD2REViVx8xBu2YXgS9NoiC1vxzF7fuZBtOBUa2yiwYWLvTQu_pVd9DRt89GM2I8y5lQPbT',
+        'https://lh3.googleusercontent.com/aida-public/AB6AXuA3BYb15TBwlFwzTJqN6o9BmNk46seaAI2VPGc9R8_NNdTlrqXFS5Kllqo2FtkTBBJONmzDZvQ0XNTPYA7B0GNyDS4Dhe36d3jxcvAe1Hz-BXzsaX5bThsQGSeF59uXukB6Lgm4Tc8g9dturJl5S-wIW6R_n5aIfXuuCM8z22RCE_ovvi2T-xVcxwsEmJeCbxOM-oeaNmvafnZ7_mKF33L791Htiwwv7a45M6xoqRTp9hSPDDrMsUqgVzztKKhRnJ-xvii4Mc-jDNPa'
+      ],
+      lastMessage: `Group chat formed with ${selectedGroupUsers.join(', ')}.`,
+      unreadCount: 0,
+      timeLabel: 'JUST NOW',
+      messages: [
+        {
+          id: `con_${Date.now()}`,
+          senderId: 'system',
+          senderName: 'System Gate',
+          text: `Welcome to the secure global group ${groupChatTitle}! Members: You, ${selectedGroupUsers.join(', ')}. Connect, share media, and co-create harmony.`,
+          timestamp: 'Today, Just Now',
+          timeLabel: 'JUST NOW',
+          isUser: false
+        }
+      ]
+    };
+
+    setConversations(prev => [newConv, ...prev]);
+    setActiveConversationId(customId);
+    setShowNewChatOverlay(false);
+    setSelectedGroupUsers([]);
+    setGroupChatTitle('');
     setCurrentTab('active_guide_chat');
   };
 
@@ -794,46 +915,147 @@ export default function App() {
         </nav>
       )}
 
+      {/* Real-time floating glassmorphism notifications stack */}
+      <div className="fixed top-6 right-6 z-[120] flex flex-col gap-3 w-80 pointer-events-none font-sans select-none">
+        {notifications.map((notif) => (
+          <div 
+            key={notif.id}
+            className="pointer-events-auto bg-stone-900/90 backdrop-blur-md text-white px-4 py-3 rounded-2xl border border-white/10 shadow-2xl flex items-start gap-3 animate-slide-in"
+          >
+            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-stone-950 text-xs font-bold font-mono shrink-0">
+              ★
+            </div>
+            <div className="flex-1 min-w-0">
+              <span className="text-[8px] font-mono tracking-widest text-primary uppercase block">LIVE SIGNAL INCIDENT</span>
+              <span className="font-bold text-xs text-stone-100 block truncate">{notif.title}</span>
+              <p className="text-[11px] text-stone-300 mt-0.5 leading-relaxed truncate">{notif.body}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* New Chat Contact Overlay Builder popup modal */}
       {showNewChatOverlay && (
         <div className="fixed inset-0 bg-inverse-surface/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-surface w-full max-w-sm rounded-3xl p-6 shadow-2xl relative border border-outline-variant/30 text-center animate-fade-in">
-            <h3 className="font-headline text-xl font-bold text-primary mb-2">Form Wellness Pause</h3>
-            <p className="text-xs text-outline mb-6">Enter a companion name to form an invite-only silent thread.</p>
+          <div className="bg-surface w-full max-w-md rounded-3xl p-6 shadow-2xl relative border border-outline-variant/30 animate-fade-in text-on-surface">
             
-            <div className="space-y-4 text-left">
-              <div>
-                <label className="text-xs text-outline font-label block mb-1">Companion Name</label>
-                <input 
-                  type="text" 
-                  placeholder="e.g. Leo Vance, Aria Greenfield"
-                  id="new-contact-name-input"
-                  className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl py-3 px-4 text-sm font-body focus:ring-1 focus:ring-primary outline-none"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      const val = (e.target as HTMLInputElement).value;
-                      if (val.trim()) handleCreateContactConversation(val);
-                    }
-                  }}
-                />
-              </div>
+            <button 
+              onClick={() => {
+                setShowNewChatOverlay(false);
+                setSelectedGroupUsers([]);
+              }}
+              className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center hover:bg-surface-container-low rounded-full text-outline transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <h3 className="font-headline text-xl font-bold text-primary mb-1 text-center">Form Secure Channel</h3>
+            <p className="text-xs text-outline mb-6 text-center">Establish private direct lines or robust collaborative groups worldwide.</p>
+            
+            {/* Tab selection for chat creation choice */}
+            <div className="flex bg-surface-container-low rounded-xl p-1 mb-5 border border-outline-variant/10">
+              <button 
+                onClick={() => setNewChatType('direct')}
+                className={`flex-1 py-1.5 text-xs font-bold uppercase tracking-wider font-label rounded-lg transition-all ${
+                  newChatType === 'direct' ? 'bg-surface text-primary shadow-sm' : 'text-outline hover:text-primary'
+                }`}
+              >
+                Direct Line
+              </button>
+              <button 
+                onClick={() => setNewChatType('group')}
+                className={`flex-1 py-1.5 text-xs font-bold uppercase tracking-wider font-label rounded-lg transition-all ${
+                  newChatType === 'group' ? 'bg-surface text-primary shadow-sm' : 'text-outline hover:text-primary'
+                }`}
+              >
+                Group Circle
+              </button>
+            </div>
+
+            <div className="space-y-4 max-h-60 overflow-y-auto pr-1">
+              {newChatType === 'direct' ? (
+                <div>
+                  <label className="text-xs text-outline font-label block mb-1">Companion Name</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. Leo Vance, Aria Greenfield"
+                    id="new-contact-name-input"
+                    className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl py-3 px-4 text-sm font-body focus:ring-1 focus:ring-primary outline-none text-on-surface"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const val = (e.target as HTMLInputElement).value;
+                        if (val.trim()) handleCreateContactConversation(val);
+                      }
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs text-outline font-label block mb-1">Group Title</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. Zen Seekers, European Core"
+                      value={groupChatTitle}
+                      onChange={(e) => setGroupChatTitle(e.target.value)}
+                      className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl py-3 px-4 text-sm font-body focus:ring-1 focus:ring-primary outline-none text-on-surface"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-outline font-label block mb-2">Select Members</label>
+                    <div className="space-y-2">
+                      {[
+                        { name: "Julian M.", id: "Julian M." },
+                        { name: "Wellness Guide", id: "Wellness Guide" },
+                        { name: "Marcus Thorne", id: "Marcus Thorne" },
+                        { name: "Elara Vance", id: "Elara Vance" },
+                        { name: "Julian Lowe", id: "Julian Lowe" }
+                      ].map(usr => (
+                        <label key={usr.id} className="flex items-center gap-3 p-2 hover:bg-surface-container-low rounded-xl cursor-pointer transition-colors border border-transparent hover:border-outline-variant/10 text-sm font-medium">
+                          <input 
+                            type="checkbox"
+                            checked={selectedGroupUsers.includes(usr.name)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedGroupUsers(prev => [...prev, usr.name]);
+                              } else {
+                                setSelectedGroupUsers(prev => prev.filter(n => n !== usr.name));
+                              }
+                            }}
+                            className="rounded border-outline-variant text-primary focus:ring-primary"
+                          />
+                          <span>{usr.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3 mt-8">
               <button 
-                onClick={() => setShowNewChatOverlay(false)}
+                onClick={() => {
+                  setShowNewChatOverlay(false);
+                  setSelectedGroupUsers([]);
+                }}
                 className="flex-grow py-3 bg-surface-container-high rounded-xl text-xs font-bold text-outline uppercase tracking-wider font-label hover:bg-surface-dim transition-colors"
               >
                 Cancel
               </button>
               <button 
                 onClick={() => {
-                  const inputEl = document.getElementById('new-contact-name-input') as HTMLInputElement;
-                  if (inputEl && inputEl.value.trim()) {
-                    handleCreateContactConversation(inputEl.value);
+                  if (newChatType === 'direct') {
+                    const inputEl = document.getElementById('new-contact-name-input') as HTMLInputElement;
+                    if (inputEl && inputEl.value.trim()) {
+                      handleCreateContactConversation(inputEl.value);
+                    }
+                  } else {
+                    handleCreateGroupConversation();
                   }
                 }}
-                className="flex-grow py-3 bg-primary text-on-primary rounded-xl text-xs font-bold uppercase tracking-wider font-label hover:opacity-95 transition-all shadow-sm"
+                disabled={newChatType === 'group' && (!groupChatTitle.trim() || selectedGroupUsers.length === 0)}
+                className="flex-grow py-3 bg-primary text-on-primary disabled:opacity-50 rounded-xl text-xs font-bold uppercase tracking-wider font-label hover:opacity-95 transition-all shadow-sm cursor-pointer"
               >
                 Initiate
               </button>
