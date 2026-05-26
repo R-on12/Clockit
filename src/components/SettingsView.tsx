@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, Lock, Bell, Palette, HelpCircle, LogOut, ChevronRight, Edit2, CheckCircle } from 'lucide-react';
 import { UserSettings } from '../types';
 
@@ -15,7 +15,18 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 }) => {
   const [expandedSection, setExpandedSection] = useState<'profile' | 'privacy' | 'notifications' | 'theme' | 'support' | null>(null);
   const [tempName, setTempName] = useState(userSettings.name);
+  const [tempAvatar, setTempAvatar] = useState(userSettings.avatar);
+  const [tempMembership, setTempMembership] = useState(userSettings.membership);
+  const [tempZenLevel, setTempZenLevel] = useState(userSettings.zenLevel);
   const [successMsg, setSuccessMsg] = useState('');
+
+  // Sync state if userSettings loaded/updated from outside
+  useEffect(() => {
+    setTempName(userSettings.name);
+    setTempAvatar(userSettings.avatar);
+    setTempMembership(userSettings.membership);
+    setTempZenLevel(userSettings.zenLevel);
+  }, [userSettings.name, userSettings.avatar, userSettings.membership, userSettings.zenLevel]);
 
   // Privacy states
   const [privacySettings, setPrivacySettings] = useState({
@@ -31,11 +42,17 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [ticketSuccess, setTicketSuccess] = useState(false);
 
   const handleSaveProfile = () => {
-    onUpdateSettings({ name: tempName });
+    onUpdateSettings({
+      name: tempName,
+      avatar: tempAvatar,
+      membership: tempMembership,
+      zenLevel: tempZenLevel
+    });
     setSuccessMsg('Sanctuary settings updated!');
     setTimeout(() => {
       setSuccessMsg('');
     }, 2500);
+    setExpandedSection(null);
   };
 
   return (
@@ -114,9 +131,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   <button
                     key={av.url}
                     onClick={() => {
-                      onUpdateSettings({ avatar: av.url });
+                      setTempAvatar(av.url);
                     }}
-                    className={`relative shrink-0 w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 transition-all ${userSettings.avatar === av.url ? 'border-primary scale-110 shadow-sm' : 'border-transparent hover:border-outline-variant/50'}`}
+                    className={`relative shrink-0 w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 transition-all ${tempAvatar === av.url ? 'border-primary scale-110 shadow-sm' : 'border-transparent hover:border-outline-variant/50'}`}
                     title={av.name}
                   >
                     <img src={av.url} className="w-full h-full object-cover" alt={av.name} referrerPolicy="no-referrer" />
@@ -131,8 +148,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 {['Standard', 'Premium Member', 'Zen Master'].map((tier) => (
                   <button
                     key={tier}
-                    onClick={() => onUpdateSettings({ membership: tier })}
-                    className={`py-1.5 sm:py-2 px-1 text-center rounded-xl text-[10px] sm:text-xs font-semibold border transition-all ${userSettings.membership === tier ? 'bg-primary/10 border-primary text-primary font-bold' : 'bg-surface border-outline-variant/20 text-outline hover:border-outline-variant/60'}`}
+                    onClick={() => setTempMembership(tier)}
+                    className={`py-1.5 sm:py-2 px-1 text-center rounded-xl text-[10px] sm:text-xs font-semibold border transition-all ${tempMembership === tier ? 'bg-primary/10 border-primary text-primary font-bold' : 'bg-surface border-outline-variant/20 text-outline hover:border-outline-variant/60'}`}
                   >
                     {tier}
                   </button>
@@ -141,17 +158,17 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </div>
 
             <div>
-              <label className="text-xs text-outline font-label block mb-2">Zen Score Level ({userSettings.zenLevel})</label>
+              <label className="text-xs text-outline font-label block mb-2">Zen Score Level ({tempZenLevel})</label>
               <div className="flex items-center gap-4">
                 <button
-                  onClick={() => onUpdateSettings({ zenLevel: Math.max(1, userSettings.zenLevel - 1) })}
+                  onClick={() => setTempZenLevel(Math.max(1, tempZenLevel - 1))}
                   className="w-8 h-8 rounded-full bg-surface-container hover:bg-surface-container-high text-on-surface hover:text-primary transition-all flex items-center justify-center font-bold text-sm"
                 >
                   -
                 </button>
-                <span className="font-headline font-bold text-sm sm:text-base w-8 text-center text-on-surface">{userSettings.zenLevel}</span>
+                <span className="font-headline font-bold text-sm sm:text-base w-8 text-center text-on-surface">{tempZenLevel}</span>
                 <button
-                  onClick={() => onUpdateSettings({ zenLevel: userSettings.zenLevel + 1 })}
+                  onClick={() => setTempZenLevel(tempZenLevel + 1)}
                   className="w-8 h-8 rounded-full bg-surface-container hover:bg-surface-container-high text-on-surface hover:text-primary transition-all flex items-center justify-center font-bold text-sm"
                 >
                   +
@@ -161,7 +178,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
             <div className="flex justify-end gap-2 pt-2 border-t border-outline-variant/10">
               <button 
-                onClick={() => setExpandedSection(null)}
+                onClick={() => {
+                  setTempName(userSettings.name);
+                  setTempAvatar(userSettings.avatar);
+                  setTempMembership(userSettings.membership);
+                  setTempZenLevel(userSettings.zenLevel);
+                  setExpandedSection(null);
+                }}
                 className="py-1.5 px-3 hover:bg-surface-container rounded-lg text-xs font-semibold text-outline"
               >
                 Cancel
