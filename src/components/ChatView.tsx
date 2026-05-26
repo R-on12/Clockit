@@ -8,6 +8,7 @@ interface ChatViewProps {
   onSendMessage: (text: string) => void;
   onSaveReflection: (reflection: Reflection) => void;
   userAvatar: string;
+  userName?: string;
 }
 
 export const ChatView: React.FC<ChatViewProps> = ({
@@ -15,7 +16,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
   onBack,
   onSendMessage,
   onSaveReflection,
-  userAvatar
+  userAvatar,
+  userName = 'Ronnie'
 }) => {
   const [inputText, setInputText] = useState('');
   const [showReflectionModal, setShowReflectionModal] = useState(false);
@@ -243,7 +245,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
             <div className="overflow-y-auto space-y-6 pr-2 py-2 flex-grow custom-scrollbar">
               <div>
                 <h3 className="text-xl font-headline font-bold text-primary tracking-tight leading-snug">
-                  Ronnie's Pause
+                  {userName}'s Pause
                 </h3>
                 <p className="mt-2 text-sm text-outline italic leading-relaxed">
                   {activeReflectionPrompt}

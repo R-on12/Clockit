@@ -5,9 +5,10 @@ import { VitalState, Reflection } from '../types';
 interface InsightsViewProps {
   vitalState: VitalState;
   reflections: Reflection[];
+  userName?: string;
 }
 
-export const InsightsView: React.FC<InsightsViewProps> = ({ vitalState, reflections }) => {
+export const InsightsView: React.FC<InsightsViewProps> = ({ vitalState, reflections, userName = 'Ronnie' }) => {
   const [activeSegment, setActiveSegment] = useState<'vitality' | 'journal'>('vitality');
 
   // Calculates percentage completions
@@ -181,7 +182,7 @@ export const InsightsView: React.FC<InsightsViewProps> = ({ vitalState, reflecti
                       </p>
                     </div>
                     <div className="pt-3 border-t border-outline-variant/10">
-                      <h4 className="text-xs text-outline font-semibold tracking-wider font-label uppercase">Ronnie's Response:</h4>
+                      <h4 className="text-xs text-outline font-semibold tracking-wider font-label uppercase">{userName}'s Response:</h4>
                       <p className="mt-1.5 text-sm text-on-surface-variant font-body leading-relaxed">
                         "{ref.response}"
                       </p>
