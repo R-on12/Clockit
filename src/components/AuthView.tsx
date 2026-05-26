@@ -93,10 +93,9 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, defaultName }
         <div className="text-center mb-10">
           <div className="inline-flex items-center justify-center w-14 h-14 bg-primary/10 rounded-full mb-4 overflow-hidden relative group" id="auth-logo-pinching-hand">
             <img 
-              src="/src/assets/images/pinching_hand_icon_1779464090788.png" 
+              src="/src/assets/images/hand_logo_outline_1779806157572.png" 
               alt="Clockit Pinch Logo" 
               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" 
-              style={{ filter: 'sepia(0.3) hue-rotate(65deg) saturate(0.8) brightness(0.8) contrast(1.1)' }}
               referrerPolicy="no-referrer"
             />
             <span className="absolute inset-0 rounded-full border border-primary/20 animate-ping opacity-25"></span>

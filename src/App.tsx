@@ -648,10 +648,9 @@ export default function App() {
           <div className="flex items-center gap-4">
             <button className="w-10 h-10 flex items-center justify-center rounded-full overflow-hidden group" id="main-sidebar-hamburger">
               <img 
-                src="/src/assets/images/pinching_hand_icon_1779464090788.png" 
+                src="/src/assets/images/hand_logo_outline_1779806157572.png" 
                 alt="Clockit Pinch Logo" 
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                style={{ filter: 'sepia(0.3) hue-rotate(65deg) saturate(0.8) brightness(0.8) contrast(1.1)' }}
                 referrerPolicy="no-referrer"
               />
             </button>
