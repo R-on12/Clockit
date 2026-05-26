@@ -32,12 +32,25 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     return { circumference, strokeDashoffset };
   };
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) {
+      return 'Peaceful morning';
+    } else if (hour >= 12 && hour < 17) {
+      return 'Nice afternoon';
+    } else if (hour >= 17 && hour < 21) {
+      return 'Quiet evening';
+    } else {
+      return 'Restful night';
+    }
+  };
+
   return (
     <div className="space-y-10 py-6 animate-fade-in" id="dashboard-view">
       {/* Hero Welcome */}
       <section className="mb-8">
         <h1 className="text-5xl font-headline font-light text-primary tracking-tight leading-tight">
-          Peaceful morning,<br />{userSettings.name}
+          {getGreeting()},<br />{userSettings.name}
         </h1>
         <p className="mt-4 text-on-surface-variant font-body tracking-wide">
           Your community is waiting for you.
