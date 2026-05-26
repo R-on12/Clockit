@@ -72,6 +72,6 @@ export interface UserSettings {
   zenLevel: number;
   avatar: string;
   notifications: string; // 'Smart Alerts', 'Off', 'All'
-  themeMode: 'light' | 'dark' | 'sepia';
+  themeMode: 'light' | 'dark' | 'sepia' | 'ocean' | 'forest' | 'cosmic';
   smartAlerts: boolean;
 }

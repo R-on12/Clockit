@@ -118,3 +118,149 @@ h1, h2, h3, h4 {
 .animate-fade-in {
   animation: fadeIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* Custom theme overrides to support real-time user-customized styles */
+.theme-dark {
+  --color-background: #11140f;
+  --color-surface-container: #1b2018;
+  --color-surface-container-low: #151813;
+  --color-surface-container-lowest: #0a0c09;
+  --color-surface-container-high: #242a20;
+  --color-surface-container-highest: #2d3428;
+  --color-surface: #11140f;
+  --color-on-surface: #e1e3dc;
+  --color-on-surface-variant: #c5c8be;
+  --color-on-background: #e1e3dc;
+  --color-outline: #8e9289;
+  --color-outline-variant: #444841;
+  --color-primary: #98a68e;
+  --color-on-primary: #1e351f;
+  --color-primary-container: #3b4d37;
+  --color-on-primary-container: #d9e7cd;
+  --color-secondary-container: #473231;
+  --color-on-secondary-container: #ffd9d6;
+  --color-secondary: #ffb4ac;
+  
+  background: linear-gradient(135deg, #11140f 0%, #151813 50%, #241413 100%) !important;
+}
+
+.theme-dark .glass-pill {
+  background: rgba(17, 20, 15, 0.75) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.theme-sepia {
+  --color-background: #f4edd8;
+  --color-surface-container: #ebe4cf;
+  --color-surface-container-low: #eae2cc;
+  --color-surface-container-lowest: #faf4e1;
+  --color-surface-container-high: #ded6bd;
+  --color-surface-container-highest: #d2caa1;
+  --color-surface: #f4edd8;
+  --color-on-surface: #433c2a;
+  --color-on-surface-variant: #6b5f48;
+  --color-on-background: #433c2a;
+  --color-outline: #8d7e63;
+  --color-outline-variant: #cfc4a9;
+  --color-primary: #7d5915;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #fce3b4;
+  --color-on-primary-container: #533800;
+  --color-secondary-container: #eedbd5;
+  --color-on-secondary-container: #5d463f;
+  --color-secondary: #7e574c;
+  
+  background: linear-gradient(135deg, #f4edd8 0%, #eae2cc 50%, #ebd4bf 100%) !important;
+}
+
+.theme-sepia .glass-pill {
+  background: rgba(244, 237, 216, 0.75) !important;
+  border: 1px solid rgba(0, 0, 0, 0.05) !important;
+}
+
+.theme-ocean {
+  --color-background: #0b131a;
+  --color-surface-container: #132230;
+  --color-surface-container-low: #0f1a25;
+  --color-surface-container-lowest: #070c11;
+  --color-surface-container-high: #192d3f;
+  --color-surface-container-highest: #20384f;
+  --color-surface: #0b131a;
+  --color-on-surface: #e2eaf0;
+  --color-on-surface-variant: #b9cbd9;
+  --color-on-background: #e2eaf0;
+  --color-outline: #8da4b8;
+  --color-outline-variant: #3d4f5e;
+  --color-primary: #7cbcf0;
+  --color-on-primary: #062f48;
+  --color-primary-container: #1a3b54;
+  --color-on-primary-container: #cbe3f8;
+  --color-secondary-container: #2b3a4a;
+  --color-on-secondary-container: #e6f3ff;
+  --color-secondary: #adcde2;
+  
+  background: linear-gradient(135deg, #0b131a 0%, #101e2b 60%, #1d3345 100%) !important;
+}
+
+.theme-ocean .glass-pill {
+  background: rgba(11, 19, 26, 0.75) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.theme-forest {
+  --color-background: #0d1612;
+  --color-surface-container: #1b2d22;
+  --color-surface-container-low: #14221a;
+  --color-surface-container-lowest: #080d0a;
+  --color-surface-container-high: #223a2b;
+  --color-surface-container-highest: #2a4735;
+  --color-surface: #0d1612;
+  --color-on-surface: #e1ede5;
+  --color-on-surface-variant: #bcd2c4;
+  --color-on-background: #e1ede5;
+  --color-outline: #8ba594;
+  --color-outline-variant: #3e4e43;
+  --color-primary: #87cba2;
+  --color-on-primary: #07381e;
+  --color-primary-container: #1e4f35;
+  --color-on-primary-container: #d6f2e2;
+  --color-secondary-container: #26332a;
+  --color-on-secondary-container: #e2ede5;
+  --color-secondary: #b6cabf;
+  
+  background: linear-gradient(135deg, #0d1612 0%, #13241b 60%, #1d3625 100%) !important;
+}
+
+.theme-forest .glass-pill {
+  background: rgba(13, 22, 18, 0.75) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.theme-cosmic {
+  --color-background: #110e1a;
+  --color-surface-container: #221a36;
+  --color-surface-container-low: #1a1429;
+  --color-surface-container-lowest: #0b0911;
+  --color-surface-container-high: #2b2144;
+  --color-surface-container-highest: #352953;
+  --color-surface: #110e1a;
+  --color-on-surface: #ede6f5;
+  --color-on-surface-variant: #d0c1e3;
+  --color-on-background: #ede6f5;
+  --color-outline: #a797be;
+  --color-outline-variant: #52446a;
+  --color-primary: #d8bcf5;
+  --color-on-primary: #3d1a5a;
+  --color-primary-container: #553477;
+  --color-on-primary-container: #f1e4fc;
+  --color-secondary-container: #2d263b;
+  --color-on-secondary-container: #f1ebfc;
+  --color-secondary: #e6b6dc;
+  
+  background: linear-gradient(135deg, #110e1a 0%, #171329 50%, #2b183a 100%) !important;
+}
+
+.theme-cosmic .glass-pill {
+  background: rgba(17, 14, 26, 0.75) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}

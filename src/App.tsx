@@ -86,7 +86,7 @@ export default function App() {
           zenLevel: data.zenLevel ?? 12,
           avatar: data.avatar || initialUserSettings.avatar,
           notifications: data.notifications || 'Smart Alerts',
-          themeMode: (data.themeMode as 'light' | 'dark' | 'sepia') || 'light',
+          themeMode: (data.themeMode as 'light' | 'dark' | 'sepia' | 'ocean' | 'forest' | 'cosmic') || 'light',
           smartAlerts: data.smartAlerts ?? true,
         });
         setVitalState({
@@ -627,6 +627,15 @@ export default function App() {
   // Helper title strings
   const activeConversation = conversations.find(c => c.id === activeConversationId) || conversations[0];
 
+  const getThemeClass = () => {
+    if (userSettings.themeMode === 'dark') return 'theme-dark';
+    if (userSettings.themeMode === 'sepia') return 'theme-sepia';
+    if (userSettings.themeMode === 'ocean') return 'theme-ocean';
+    if (userSettings.themeMode === 'forest') return 'theme-forest';
+    if (userSettings.themeMode === 'cosmic') return 'theme-cosmic';
+    return '';
+  };
+
   if (!isLoggedIn) {
     return (
       <AuthView 
@@ -641,7 +650,7 @@ export default function App() {
   }
 
   return (
-    <div className="bg-clockit-gradient min-h-screen text-on-background pb-32">
+    <div className={`bg-clockit-gradient min-h-screen text-on-background pb-32 transition-all duration-300 ${getThemeClass()}`}>
       {/* Dynamic Top App Header (Hidden during active chat transactional context) */}
       {currentTab !== 'active_guide_chat' && (
         <header className="sticky top-0 z-50 px-6 py-4 flex items-center justify-between glass-pill transition-all" id="app-primary-sticky-header">
