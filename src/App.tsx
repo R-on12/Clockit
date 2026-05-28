@@ -41,7 +41,7 @@ export default function App() {
   const [reflections, setReflections] = useState<Reflection[]>(initialReflections);
   const [userSettings, setUserSettings] = useState<UserSettings>(initialUserSettings);
   const [vitalState, setVitalState] = useState<VitalState>(initialVitalState);
-  const [activeConversationId, setActiveConversationId] = useState<string>('julian_m');
+  const [activeConversationId, setActiveConversationId] = useState<string>('wellness_guide');
   const [showNewChatOverlay, setShowNewChatOverlay] = useState<boolean>(false);
 
   // 1. Verify Firestore Connection on Boot
@@ -401,10 +401,8 @@ export default function App() {
         id: replyId,
         conversationId: activeConversationId,
         senderId: activeConversationId,
-        senderName: activeConversationId === 'julian_m' ? 'Julian M.' : 'Wellness Guide',
-        senderAvatar: activeConversationId === 'julian_m'
-          ? 'https://lh3.googleusercontent.com/aida-public/AB6AXuDtbc2t1r8Vs-ObpR8Uu7wZ9i6qL3Hp24MzcsHBVLd8W5xSn7KKoiC2c58Wx337GU1RweBeACbHt-eyZKbVTL70rPKnaeenqQ-tyV-ySd2KPKWD_XbQgO7UW8p8tYu3c8Sj88Gnoh1SJ3dVxp2HIvizMkSeJSphq-1M1bTUcegVn8XagrGMRJYTZmnBm3z-yJ4-yanb__8KRmu9Q1OuBi6erzS8qEoGGEAGk8LkESw5PPuvNxMxpt27m4deez2zBzU3pQFzjmI9JPzb'
-          : 'https://lh3.googleusercontent.com/aida-public/AB6AXuCE54NSPHbX_rB2bvgKiljuvd5-JlEpnq-PUTJroJhuoDHf8xcICcz1SdKGAXQTPgd9Lnf_1RQ2gK2uGfCED5UyyvSaHTvRE5Tz7QlNVB2bwiWB7kMRx-wa1malx4rt3pw8wlFV29vnBaAjSHXeef8ImZjwK3zi6McOGsVOQfVV6TcJlBsCQeAZcMtfwmzbjPQi8z6lxFlk80nkQMGfINcD8OkpUc_O9sqIAmBZPmOFzanAnArGrcRF8NtpqJneZWDZJSb8xU980Xue',
+        senderName: activeConversation?.name || 'Wellness Guide',
+        senderAvatar: activeConversation?.avatar || 'https://lh3.googleusercontent.com/aida-public/AB6AXuCE54NSPHbX_rB2bvgKiljuvd5-JlEpnq-PUTJroJhuoDHf8xcICcz1SdKGAXQTPgd9Lnf_1RQ2gK2uGfCED5UyyvSaHTvRE5Tz7QlNVB2bwiWB7kMRx-wa1malx4rt3pw8wlFV29vnBaAjSHXeef8ImZjwK3zi6McOGsVOQfVV6TcJlBsCQeAZcMtfwmzbjPQi8z6lxFlk80nkQMGfINcD8OkpUc_O9sqIAmBZPmOFzanAnArGrcRF8NtpqJneZWDZJSb8xU980Xue',
         text: replyText,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         timeLabel: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),

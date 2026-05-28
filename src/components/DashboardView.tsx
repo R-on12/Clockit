@@ -17,8 +17,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onNavigate,
   onIncrementState,
 }) => {
-  // Recent conversations to display (Wellness Guide and Clock Seekers)
-  const recentChats = conversations.filter(c => c.id === 'wellness_guide' || c.id === 'zen_seekers');
+  // Recent conversations to display (the most recent conversations)
+  const recentChats = conversations.slice(0, 2);
 
   const getMetricProgress = (current: number, target: number) => {
     const ratio = current / target;
@@ -75,18 +75,25 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             return (
               <div
                 key={chat.id}
-                onClick={() => onNavigate(chat.id === 'wellness_guide' ? 'chat_wellness' : 'messages')}
+                onClick={() => onNavigate('active_guide_chat', chat.id)}
                 className="flex items-center gap-4 bg-surface-container-lowest p-4 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.02)] transition-all cursor-pointer hover:scale-[0.99] active:scale-[0.98]"
                 id={`chat-item-${chat.id}`}
               >
                 {/* Avatar Icon */}
-                <div className={`w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 relative ${
-                  chat.id === 'wellness_guide' ? 'bg-primary-container/20' : 'bg-secondary-container/30'
-                }`}>
-                  {chat.id === 'wellness_guide' ? (
-                    <span className="text-primary text-xl">🧠</span>
+                <div className="relative flex-shrink-0">
+                  {chat.avatar ? (
+                    <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-primary-container/20">
+                      <img
+                        alt={chat.name}
+                        className="w-full h-full object-cover"
+                        src={chat.avatar}
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
                   ) : (
-                    <Users className="text-secondary w-6 h-6" />
+                    <div className="w-14 h-14 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container font-headline font-semibold text-lg">
+                      {chat.name.split(' ').map((n: string) => n[0]).join('')}
+                    </div>
                   )}
                   {chat.online && (
                     <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-surface-container-lowest"></span>

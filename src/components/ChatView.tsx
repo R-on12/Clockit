@@ -531,21 +531,18 @@ export const ChatView: React.FC<ChatViewProps> = ({
       setTimeout(() => {
         setIsContactTyping(false);
         
-        const responses = conversation.id === 'julian_m' 
-          ? [
-              "I completely resonate with that. Intention is the anchor that centers us through the daily hustle.",
-              "Excellent observation. Have you tried doing a quick 4-7-8 breathing pacing session right now?",
-              "Grounded energy is contagious. Taking this mindful pause creates a sanctuary of true focus.",
-              "Let's embrace the pace. One mindful step, one conscious inhalation at a time.",
-              "Stillness is the presence of clarity. I am noting down your reflection in our alignment sanctuary."
-            ]
-          : [
-              "Vibrational harmony detected. Your biometric bio-pulse flows are stabilizing beautifully.",
-              "Aura pulse frequency aligning to 528Hz. Keep breathing smoothly and deeply.",
-              "I am sending an aura of pure tranquility, warm light, and centered mindfulness your way! ❤️",
-              "Biometric resonance is optimal right now. Continue matching the golden light breathing expander.",
-              "Let go of transient thoughts. Keep steady stillness in the heart."
-            ];
+        const responses = [
+          "I completely resonate with that. Intention is the anchor that centers us through the daily hustle.",
+          "Excellent observation. Have you tried doing a quick 4-7-8 breathing pacing session right now?",
+          "Grounded energy is contagious. Taking this mindful pause creates a sanctuary of true focus.",
+          "Let's embrace the pace. One mindful step, one conscious inhalation at a time.",
+          "Stillness is the presence of clarity. I am noting down your reflection in our alignment sanctuary.",
+          "Vibrational harmony detected. Your biometric bio-pulse flows are stabilizing beautifully.",
+          "Aura pulse frequency aligning to 528Hz. Keep breathing smoothly and deeply.",
+          "I am sending an aura of pure tranquility, warm light, and centered mindfulness your way! ❤️",
+          "Biometric resonance is optimal right now. Continue matching the golden light breathing expander.",
+          "Let go of transient thoughts. Keep steady stillness in the heart."
+        ];
             
         const chosenText = responses[Math.floor(Math.random() * responses.length)];
         
@@ -1684,7 +1681,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
         )}
 
         {/* Embedded Daily Reflection Card IF this is the active guide conversation */}
-        {conversation.id === 'julian_m' && (
+        {conversation.id === 'wellness_guide' && (
           <div className="w-full py-2 animate-fade-in" id="daily-reflection-interactive-card">
             <div className="bg-surface-container-low rounded-3xl p-6 border border-primary-fixed/30 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-secondary-container/20 rounded-full -mr-16 -mt-16 blur-3xl"></div>
