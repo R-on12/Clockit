@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Video, Phone, MoreVertical, Plus, Send, Sparkles, X, Heart, FileText, Image, Camera, Paperclip, Download, Mic, MicOff, VideoOff, PhoneOff, Activity, Volume2, VolumeX, Check, CheckCheck, Smile, CornerUpLeft, Trash2, Search, Play, Pause } from 'lucide-react';
+import { ArrowLeft, Video, Phone, MoreVertical, Plus, Send, Sparkles, X, Heart, FileText, Image, Camera, Paperclip, Download, Mic, MicOff, VideoOff, PhoneOff, Activity, Volume2, VolumeX, Check, CheckCheck, Smile, CornerUpLeft, Trash2, Search, Play, Pause, Sliders, Link, Upload } from 'lucide-react';
 import { Conversation, Message, Reflection } from '../types';
 
 interface ChatViewProps {
@@ -66,9 +66,36 @@ export const ChatView: React.FC<ChatViewProps> = ({
   const [showGuidanceTips, setShowGuidanceTips] = useState<boolean>(true);
   const [localMessages, setLocalMessages] = useState<Message[]>(conversation.messages);
 
+  const [chatWallpaper, setChatWallpaper] = useState<string>(() => {
+    return localStorage.getItem(`chat_wallpaper_${conversation.id}`) || 'default';
+  });
+
+  const [chatWallpaperBlur, setChatWallpaperBlur] = useState<number>(() => {
+    return Number(localStorage.getItem(`chat_wallpaper_blur_${conversation.id}`)) || 0;
+  });
+
+  const [chatWallpaperDim, setChatWallpaperDim] = useState<number>(() => {
+    const saved = localStorage.getItem(`chat_wallpaper_dim_${conversation.id}`);
+    if (saved !== null) return Number(saved);
+    const currWall = localStorage.getItem(`chat_wallpaper_${conversation.id}`) || 'default';
+    return (currWall.startsWith('pic_') || currWall.startsWith('http') || currWall.startsWith('data:')) ? 25 : 0;
+  });
+
+  const [customWallpaperUrl, setCustomWallpaperUrl] = useState<string>('');
+  const [showCustomUrlInput, setShowCustomUrlInput] = useState<boolean>(false);
+
   useEffect(() => {
     setLocalMessages(conversation.messages);
-  }, [conversation.messages]);
+    const savedWallpaper = localStorage.getItem(`chat_wallpaper_${conversation.id}`) || 'default';
+    setChatWallpaper(savedWallpaper);
+    setChatWallpaperBlur(Number(localStorage.getItem(`chat_wallpaper_blur_${conversation.id}`)) || 0);
+    const savedDim = localStorage.getItem(`chat_wallpaper_dim_${conversation.id}`);
+    if (savedDim !== null) {
+      setChatWallpaperDim(Number(savedDim));
+    } else {
+      setChatWallpaperDim((savedWallpaper.startsWith('pic_') || savedWallpaper.startsWith('http') || savedWallpaper.startsWith('data:')) ? 25 : 0);
+    }
+  }, [conversation.id, conversation.messages]);
 
   useEffect(() => {
     if (showVideoCall && isVideoEnabled && localVideoRef.current && localStreamRef.current) {
@@ -78,6 +105,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
   const photoInputRef = useRef<HTMLInputElement>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
+  const wallpaperInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -660,6 +688,143 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
   const activeReflectionPrompt = `"In the midst of movement and chaos, keep stillness inside of you." What is one area of your life where you'd like to invite more stillness today?`;
 
+  const getWallpaperClassOrStyle = (key: string) => {
+    const isCustomUrl = key.startsWith('http') || key.startsWith('data:');
+    
+    if (isCustomUrl) {
+      return {
+        className: "bg-surface-container-low relative bg-cover bg-center bg-no-repeat",
+        style: {
+          backgroundImage: `url("${key}")`
+        }
+      };
+    }
+    
+    if (key.startsWith('pic_')) {
+      let url = '';
+      if (key === 'pic_mist') url = 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80';
+      else if (key === 'pic_clouds') url = 'https://images.unsplash.com/photo-1513002749550-c59d786b8e6c?auto=format&fit=crop&w=1200&q=80';
+      else if (key === 'pic_stars') url = 'https://images.unsplash.com/photo-1506318137071-a8e063b4bec0?auto=format&fit=crop&w=1200&q=80';
+      else if (key === 'pic_forest') url = 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1200&q=80';
+      
+      return {
+        className: "bg-surface-container-low relative bg-cover bg-center bg-no-repeat",
+        style: {
+          backgroundImage: `url("${url}")`
+        }
+      };
+    }
+
+    switch (key) {
+      case 'sage':
+        return {
+          className: "bg-[#e2e8e4] dark:bg-[#121915] relative",
+          style: {
+            backgroundImage: `radial-gradient(#9cb5a3 1px, transparent 1px)`,
+            backgroundSize: '16px 16px',
+          }
+        };
+      case 'cosmic':
+        return {
+          className: "bg-gradient-to-b from-[#0c0a1a] via-[#060714] to-[#010103] text-stone-100 relative",
+          style: {
+            backgroundImage: `
+              radial-gradient(circle at 20% 30%, rgba(255,255,255,0.08) 1px, transparent 1px),
+              radial-gradient(circle at 75% 40%, rgba(255,255,255,0.06) 1.5px, transparent 1.5px),
+              radial-gradient(circle at 40% 80%, rgba(255,255,255,0.05) 1.2px, transparent 1.2px)
+            `,
+            backgroundSize: '240px 240px, 320px 320px, 200px 200px'
+          }
+        };
+      case 'gold':
+        return {
+          className: "bg-gradient-to-tr from-[#faf5e5] to-[#f2dfb5] dark:from-[#1f1d16] dark:to-[#14120c] relative",
+          style: {
+            backgroundImage: `radial-gradient(circle at 50% 50%, rgba(212,163,89,0.12) 0%, transparent 70%)`
+          }
+        };
+      case 'lavender':
+        return {
+          className: "bg-[#ecedf6] dark:bg-[#111018] relative",
+          style: {
+            backgroundImage: `
+              radial-gradient(circle at 90% 10%, rgba(139, 92, 246, 0.08) 0%, transparent 60%),
+              radial-gradient(circle at 10% 80%, rgba(168, 85, 247, 0.08) 0%, transparent 60%)
+            `
+          }
+        };
+      case 'whatsapp':
+        return {
+          className: "bg-[#f2efe4] dark:bg-[#070d12] relative",
+          style: {
+            backgroundImage: `
+              radial-gradient(#d8d2be 12%, transparent 12%),
+              radial-gradient(#d8d2be 12%, transparent 12%)
+            `,
+            backgroundPosition: '0 0, 8px 8px',
+            backgroundSize: '16px 16px'
+          }
+        };
+      case 'teal':
+        return {
+          className: "bg-[#e1efef] dark:bg-[#0a1212] relative",
+          style: {
+            backgroundImage: `
+              linear-gradient(45deg, rgba(20, 184, 166, 0.03) 25%, transparent 25%),
+              linear-gradient(-45deg, rgba(20, 184, 166, 0.03) 25%, transparent 25%),
+              linear-gradient(45deg, transparent 75%, rgba(20, 184, 166, 0.03) 75%)
+            `,
+            backgroundSize: '20px 20px',
+            backgroundPosition: '0 0, 0 10px, 10px -10px'
+          }
+        };
+      default:
+        return {
+          className: "bg-transparent",
+          style: {}
+        };
+    }
+  };
+
+  const handleWallpaperChange = (key: string) => {
+    setChatWallpaper(key);
+    localStorage.setItem(`chat_wallpaper_${conversation.id}`, key);
+    
+    // Auto-on shadow overlay for image backgrounds to make sure contrasts are maintained instantly
+    const isImage = key.startsWith('pic_') || key.startsWith('http') || key.startsWith('data:');
+    if (isImage) {
+      const currentDim = localStorage.getItem(`chat_wallpaper_dim_${conversation.id}`);
+      if (!currentDim) {
+        setChatWallpaperDim(25);
+        localStorage.setItem(`chat_wallpaper_dim_${conversation.id}`, '25');
+      }
+    }
+  };
+
+  const handleWallpaperBlurChange = (val: number) => {
+    setChatWallpaperBlur(val);
+    localStorage.setItem(`chat_wallpaper_blur_${conversation.id}`, String(val));
+  };
+
+  const handleWallpaperDimChange = (val: number) => {
+    setChatWallpaperDim(val);
+    localStorage.setItem(`chat_wallpaper_dim_${conversation.id}`, String(val));
+  };
+
+  const handleWallpaperFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64 = event.target?.result as string;
+        if (base64) {
+          handleWallpaperChange(base64);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSaveReflection = () => {
     if (!reflectionText.trim()) return;
     const newRef: Reflection = {
@@ -894,6 +1059,276 @@ export const ChatView: React.FC<ChatViewProps> = ({
             </div>
           </button>
 
+          {/* Chat Wallpaper Picker */}
+          <div className="space-y-3">
+            <div className="flex justify-between items-center text-[10px] uppercase font-mono tracking-wider">
+              <span className="text-on-surface-variant font-semibold">Chat Wallpaper</span>
+              <span className="text-primary font-bold capitalize">
+                {chatWallpaper === 'default' ? 'Default' : 
+                 chatWallpaper.startsWith('pic_') ? chatWallpaper.replace('pic_', '') + ' ' :
+                 chatWallpaper.startsWith('data:') ? 'Custom Upload 🖼️' :
+                 chatWallpaper.startsWith('http') ? 'Custom URL 🌐' : 
+                 chatWallpaper}
+              </span>
+            </div>
+            
+            {/* Presets Subsection Title */}
+            <span className="text-[9px] uppercase font-mono tracking-widest text-outline block">Preset Textures & Aesthetics</span>
+            <div className="grid grid-cols-4 gap-1.5 bg-surface-container-low p-1.5 rounded-2xl border border-outline-variant/15" id="chat-wallpaper-grid">
+              {/* Default transparent theme style */}
+              <button
+                onClick={() => handleWallpaperChange('default')}
+                className={`relative aspect-video rounded-xl border-2 overflow-hidden flex flex-col justify-end p-1 transition-all hover:scale-105 active:scale-95 cursor-pointer ${
+                  chatWallpaper === 'default' ? 'border-primary shadow-md' : 'border-transparent hover:border-outline-variant'
+                }`}
+                title="Default Clean Slate"
+              >
+                <div className="absolute inset-0 bg-surface dark:bg-zinc-900" />
+                <span className="relative z-10 text-[8px] font-mono leading-none tracking-tight font-semibold text-outline text-left truncate w-full">Clean</span>
+              </button>
+
+              {/* Serene Sage */}
+              <button
+                onClick={() => handleWallpaperChange('sage')}
+                className={`relative aspect-video rounded-xl border-2 overflow-hidden flex flex-col justify-end p-1 transition-all hover:scale-105 active:scale-95 cursor-pointer ${
+                  chatWallpaper === 'sage' ? 'border-primary shadow-md' : 'border-transparent hover:border-outline-variant'
+                }`}
+                title="Serene Sage Theme"
+              >
+                <div className="absolute inset-0 bg-[#e2e8e4] dark:bg-[#121915]" style={{ backgroundImage: 'radial-gradient(#9cb5a3 1px, transparent 1px)', backgroundSize: '6px 6px' }} />
+                <span className="relative z-10 text-[8px] font-mono leading-none tracking-tight font-semibold text-green-800 dark:text-green-300 text-left truncate w-full">Sage</span>
+              </button>
+
+              {/* Cosmic Midnight */}
+              <button
+                onClick={() => handleWallpaperChange('cosmic')}
+                className={`relative aspect-video rounded-xl border-2 overflow-hidden flex flex-col justify-end p-1 transition-all hover:scale-105 active:scale-95 cursor-pointer ${
+                  chatWallpaper === 'cosmic' ? 'border-primary shadow-md' : 'border-transparent hover:border-outline-variant'
+                }`}
+                title="Cosmic Midnight Theme"
+              >
+                <div className="absolute inset-0 bg-gradient-to-tr from-[#0c0a1a] to-[#010103] flex items-center justify-center">
+                  <span className="text-[6px] text-stone-400 opacity-60">✨</span>
+                </div>
+                <span className="relative z-10 text-[8px] font-mono leading-none tracking-tight font-semibold text-stone-200 text-left truncate w-full">Cosmic</span>
+              </button>
+
+              {/* Solfeggio gold */}
+              <button
+                onClick={() => handleWallpaperChange('gold')}
+                className={`relative aspect-video rounded-xl border-2 overflow-hidden flex flex-col justify-end p-1 transition-all hover:scale-105 active:scale-95 cursor-pointer ${
+                  chatWallpaper === 'gold' ? 'border-primary shadow-md' : 'border-transparent hover:border-outline-variant'
+                }`}
+                title="Solfeggio Warm Golden Sun"
+              >
+                <div className="absolute inset-0 bg-gradient-to-tr from-[#faf5e5] to-[#f2dfb5] dark:from-[#1f1d16] dark:to-[#14120c]" />
+                <span className="relative z-10 text-[8px] font-mono leading-none tracking-tight font-semibold text-amber-805 dark:text-amber-300 text-left truncate w-full">Gold</span>
+              </button>
+
+              {/* Zen Lavender */}
+              <button
+                onClick={() => handleWallpaperChange('lavender')}
+                className={`relative aspect-video rounded-xl border-2 overflow-hidden flex flex-col justify-end p-1 transition-all hover:scale-105 active:scale-95 cursor-pointer ${
+                  chatWallpaper === 'lavender' ? 'border-primary shadow-md' : 'border-transparent hover:border-outline-variant'
+                }`}
+                title="Zen Lavender Aura"
+              >
+                <div className="absolute inset-0 bg-[#ecedf6] dark:bg-[#111018]" style={{ backgroundImage: 'radial-gradient(circle at 90% 10%, rgba(139, 92, 246, 0.15) 0%, transparent 60%)' }} />
+                <span className="relative z-10 text-[8px] font-mono leading-none tracking-tight font-semibold text-purple-800 dark:text-purple-300 text-left truncate w-full">Lavender</span>
+              </button>
+
+              {/* WhatsApp doodle pattern */}
+              <button
+                onClick={() => handleWallpaperChange('whatsapp')}
+                className={`relative aspect-video rounded-xl border-2 overflow-hidden flex flex-col justify-end p-1 transition-all hover:scale-105 active:scale-95 cursor-pointer ${
+                  chatWallpaper === 'whatsapp' ? 'border-primary shadow-md' : 'border-transparent hover:border-outline-variant'
+                }`}
+                title="Classic Tea Green Doodles"
+              >
+                <div className="absolute inset-0 bg-[#f2efe4] dark:bg-[#070d12]" style={{ backgroundImage: 'radial-gradient(#d8d2be 15%, transparent 15%)', backgroundSize: '8px 8px' }} />
+                <span className="relative z-10 text-[8px] font-mono leading-none tracking-tight font-semibold text-orange-800 dark:text-orange-300 text-left truncate w-full">Classic</span>
+              </button>
+
+              {/* Calming Teal */}
+              <button
+                onClick={() => handleWallpaperChange('teal')}
+                className={`relative aspect-video rounded-xl border-2 overflow-hidden flex flex-col justify-end p-1 transition-all hover:scale-105 active:scale-95 cursor-pointer ${
+                  chatWallpaper === 'teal' ? 'border-primary shadow-md' : 'border-transparent hover:border-outline-variant'
+                }`}
+                title="Mindful Teal Waves"
+              >
+                <div className="absolute inset-0 bg-[#e1efef] dark:bg-[#0a1212]" style={{ backgroundImage: 'linear-gradient(45deg, rgba(20, 184, 166, 0.05) 25%, transparent 25%)', backgroundSize: '10px 10px' }} />
+                <span className="relative z-10 text-[8px] font-mono leading-none tracking-tight font-semibold text-teal-800 dark:text-teal-300 text-left truncate w-full">Teal</span>
+              </button>
+            </div>
+
+            {/* Presets Scenics Title */}
+            <span className="text-[9px] uppercase font-mono tracking-widest text-outline block pt-1">Preset Scenic Pictures</span>
+            <div className="grid grid-cols-4 gap-1.5 bg-surface-container-low p-1.5 rounded-2xl border border-outline-variant/15">
+              {/* Preset Beach Scenic */}
+              <button
+                onClick={() => handleWallpaperChange('pic_mist')}
+                className={`relative aspect-video rounded-xl border-2 overflow-hidden flex flex-col justify-end p-1 transition-all hover:scale-105 active:scale-95 cursor-pointer ${
+                  chatWallpaper === 'pic_mist' ? 'border-primary shadow-md' : 'border-transparent hover:border-outline-variant'
+                }`}
+                title="Soothed Mist Beach"
+              >
+                <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=120&q=70" className="absolute inset-0 w-full h-full object-cover" referrerPolicy="no-referrer" />
+                <div className="absolute inset-0 bg-black/10 hover:bg-black/0 transition-all" />
+                <span className="relative z-10 text-[8px] font-mono leading-none tracking-tight font-bold text-white text-left truncate w-full shadow-sm drop-shadow">Mist</span>
+              </button>
+
+              {/* Preset Clouds Scenic */}
+              <button
+                onClick={() => handleWallpaperChange('pic_clouds')}
+                className={`relative aspect-video rounded-xl border-2 overflow-hidden flex flex-col justify-end p-1 transition-all hover:scale-105 active:scale-95 cursor-pointer ${
+                  chatWallpaper === 'pic_clouds' ? 'border-primary shadow-md' : 'border-transparent hover:border-outline-variant'
+                }`}
+                title="Infinite Peace Clouds"
+              >
+                <img src="https://images.unsplash.com/photo-1513002749550-c59d786b8e6c?auto=format&fit=crop&w=120&q=70" className="absolute inset-0 w-full h-full object-cover" referrerPolicy="no-referrer" />
+                <div className="absolute inset-0 bg-black/10 hover:bg-black/0 transition-all" />
+                <span className="relative z-10 text-[8px] font-mono leading-none tracking-tight font-bold text-white text-left truncate w-full shadow-sm drop-shadow">Clouds</span>
+              </button>
+
+              {/* Preset Nebula Scenic */}
+              <button
+                onClick={() => handleWallpaperChange('pic_stars')}
+                className={`relative aspect-video rounded-xl border-2 overflow-hidden flex flex-col justify-end p-1 transition-all hover:scale-105 active:scale-95 cursor-pointer ${
+                  chatWallpaper === 'pic_stars' ? 'border-primary shadow-md' : 'border-transparent hover:border-outline-variant'
+                }`}
+                title="Deep Space Stars"
+              >
+                <img src="https://images.unsplash.com/photo-1506318137071-a8e063b4bec0?auto=format&fit=crop&w=120&q=70" className="absolute inset-0 w-full h-full object-cover" referrerPolicy="no-referrer" />
+                <div className="absolute inset-0 bg-black/10 hover:bg-black/0 transition-all" />
+                <span className="relative z-10 text-[8px] font-mono leading-none tracking-tight font-bold text-white text-left truncate w-full shadow-sm drop-shadow">Stars</span>
+              </button>
+
+              {/* Preset Forest Scenic */}
+              <button
+                onClick={() => handleWallpaperChange('pic_forest')}
+                className={`relative aspect-video rounded-xl border-2 overflow-hidden flex flex-col justify-end p-1 transition-all hover:scale-105 active:scale-95 cursor-pointer ${
+                  chatWallpaper === 'pic_forest' ? 'border-primary shadow-md' : 'border-transparent hover:border-outline-variant'
+                }`}
+                title="Calming Canopy Forest"
+              >
+                <img src="https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=120&q=70" className="absolute inset-0 w-full h-full object-cover" referrerPolicy="no-referrer" />
+                <div className="absolute inset-0 bg-black/10 hover:bg-black/0 transition-all" />
+                <span className="relative z-10 text-[8px] font-mono leading-none tracking-tight font-bold text-white text-left truncate w-full shadow-sm drop-shadow">Forest</span>
+              </button>
+            </div>
+
+            {/* Custom Image Actions Section */}
+            <div className="flex flex-col gap-1.5 pt-1">
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => wallpaperInputRef.current?.click()}
+                  className="flex-1 py-1.5 bg-surface-container-low hover:bg-surface-container-highest border border-outline-variant/20 rounded-xl text-[9px] font-mono font-bold tracking-wider text-on-surface-variant flex items-center justify-center gap-1 cursor-pointer transition-all"
+                >
+                  <Upload className="w-3 h-3 text-primary" />
+                  <span>Upload Pic</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCustomUrlInput(!showCustomUrlInput)}
+                  className={`flex-1 py-1.5 border border-outline-variant/20 rounded-xl text-[9px] font-mono font-bold tracking-wider flex items-center justify-center gap-1 cursor-pointer transition-all ${
+                    showCustomUrlInput ? 'bg-primary/10 text-primary border-primary/30' : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-highest'
+                  }`}
+                >
+                  <Link className="w-3 h-3 text-primary" />
+                  <span>Paste URL</span>
+                </button>
+              </div>
+
+              {/* Hidden file input for custom pictures */}
+              <input 
+                type="file"
+                ref={wallpaperInputRef}
+                onChange={handleWallpaperFileUpload}
+                accept="image/*"
+                className="hidden"
+                id="hidden-wallpaper-file-input"
+              />
+
+              {/* Link Input area */}
+              {showCustomUrlInput && (
+                <form 
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (customWallpaperUrl.trim()) {
+                      handleWallpaperChange(customWallpaperUrl.trim());
+                      setCustomWallpaperUrl('');
+                      setShowCustomUrlInput(false);
+                    }
+                  }}
+                  className="flex gap-1.5 mt-1 animate-fade-in"
+                >
+                  <input
+                    type="url"
+                    placeholder="https://images.unsplash.com/..."
+                    value={customWallpaperUrl}
+                    onChange={(e) => setCustomWallpaperUrl(e.target.value)}
+                    className="flex-grow bg-surface-container-low border border-outline-variant/30 rounded-xl px-2.5 py-1 text-[10px] font-mono text-on-surface placeholder:text-outline-variant/50 focus:outline-none focus:border-primary"
+                    id="chat-wallpaper-custom-url-field"
+                    required
+                  />
+                  <button
+                    type="submit"
+                    className="px-2.5 bg-primary text-on-primary rounded-xl text-[9px] font-mono font-bold tracking-wider uppercase transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    Set
+                  </button>
+                </form>
+              )}
+            </div>
+
+            {/* Slider controls for dimming and blur */}
+            <div className="space-y-2 pt-1.5 border-t border-outline-variant/10">
+              {/* Blur Slider */}
+              <div className="space-y-1">
+                <div className="flex justify-between items-center text-[9px] font-mono text-outline uppercase tracking-wider">
+                  <span>Wallpaper Defocussed Blur</span>
+                  <span className="font-semibold text-primary">{chatWallpaperBlur}px</span>
+                </div>
+                <div className="flex items-center gap-2 bg-surface-container-low px-2.5 py-1.5 rounded-xl border border-outline-variant/10">
+                  <Sliders className="w-3 h-3 text-outline/50" />
+                  <input 
+                    type="range"
+                    min="0"
+                    max="16"
+                    step="1"
+                    value={chatWallpaperBlur}
+                    onChange={(e) => handleWallpaperBlurChange(Number(e.target.value))}
+                    className="flex-grow h-1.5 bg-surface-container bg-gradient-to-r from-primary/20 to-primary accent-primary rounded-lg appearance-none cursor-pointer animate-none"
+                    id="wallpaper-blur-slider"
+                  />
+                </div>
+              </div>
+
+              {/* Dim opacity overlay color level */}
+              <div className="space-y-1">
+                <div className="flex justify-between items-center text-[9px] font-mono text-outline uppercase tracking-wider">
+                  <span>Wallpaper Tint / Contrast Dim</span>
+                  <span className="font-semibold text-primary">{chatWallpaperDim}%</span>
+                </div>
+                <div className="flex items-center gap-2 bg-surface-container-low px-2.5 py-1.5 rounded-xl border border-outline-variant/10">
+                  <Sliders className="w-3 h-3 text-outline/50" />
+                  <input 
+                    type="range"
+                    min="0"
+                    max="80"
+                    step="5"
+                    value={chatWallpaperDim}
+                    onChange={(e) => handleWallpaperDimChange(Number(e.target.value))}
+                    className="flex-grow h-1.5 bg-surface-container bg-gradient-to-r from-primary/20 to-primary accent-primary rounded-lg appearance-none cursor-pointer animate-none"
+                    id="wallpaper-dim-slider"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="h-px bg-outline-variant/10 w-full" />
 
           {/* Action trigger clear message list */}
@@ -924,8 +1359,29 @@ export const ChatView: React.FC<ChatViewProps> = ({
         </div>
       )}
 
-      {/* Messages Canvas */}
-      <div className="flex-grow overflow-y-auto px-1 py-6 space-y-8 custom-scrollbar scroll-smooth">
+      {/* Messages Canvas Wrapper with independent background layer */}
+      <div className="flex-grow flex flex-col relative overflow-hidden">
+        {/* Background panel */}
+        <div 
+          className={`absolute inset-0 transition-all duration-300 pointer-events-none ${getWallpaperClassOrStyle(chatWallpaper).className}`}
+          style={{
+            ...getWallpaperClassOrStyle(chatWallpaper).style,
+            filter: `blur(${chatWallpaperBlur}px) scale(${chatWallpaperBlur > 0 ? 1.05 : 1})`,
+          }}
+          id="chat-messages-background-panel"
+        />
+        {/* Color Contrast / Tint Overlay (Dark Overlay) */}
+        <div 
+          className="absolute inset-0 bg-stone-900 pointer-events-none transition-all duration-300 z-[1]" 
+          style={{ opacity: chatWallpaperDim / 100 }} 
+          id="chat-messages-brightness-overlay"
+        />
+
+        {/* Scrollable messages container */}
+        <div 
+          className="flex-grow overflow-y-auto px-4 py-6 space-y-8 custom-scrollbar scroll-smooth relative z-10"
+          id="chat-messages-scroll-area"
+        >
         {/* Date indication */}
         <div className="flex justify-center">
           <span className="text-[10px] text-outline uppercase tracking-widest font-label bg-surface-container px-3 py-1 rounded-full">
@@ -1255,6 +1711,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
         <div ref={messagesEndRef} />
       </div>
+    </div>
 
       {/* Thread reply header preview */}
       {replyToMsg && (
