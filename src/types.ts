@@ -8,6 +8,12 @@ export interface Message {
   timeLabel: string;
   isUser: boolean;
   isItalic?: boolean;
+  attachment?: {
+    type: 'photo' | 'gif' | 'document';
+    url: string;
+    name?: string;
+    size?: string;
+  };
 }
 
 export interface Conversation {

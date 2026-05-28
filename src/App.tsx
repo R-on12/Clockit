@@ -192,7 +192,8 @@ export default function App() {
           timestamp: data.timestamp,
           timeLabel: data.timeLabel,
           isUser: data.isUser,
-          isItalic: data.isItalic
+          isItalic: data.isItalic,
+          attachment: data.attachment
         });
       });
 
@@ -354,7 +355,7 @@ export default function App() {
   };
 
   // Chat message submission
-  const handleSendMessage = async (text: string) => {
+  const handleSendMessage = async (text: string, attachment?: { type: 'photo' | 'gif' | 'document'; url: string; name?: string; size?: string }) => {
     const msgId = `msg_${Date.now()}`;
     const newMessage = {
       id: msgId,
@@ -367,6 +368,7 @@ export default function App() {
       timeLabel: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isUser: true,
       isItalic: false,
+      attachment: attachment || null,
       createdAt: new Date().toISOString()
     };
 
