@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Video, MoreVertical, Plus, Send, Sparkles, X, Heart, FileText, Image, Camera, Paperclip, Download } from 'lucide-react';
+import { ArrowLeft, Video, MoreVertical, Plus, Send, Sparkles, X, Heart, FileText, Image, Camera, Paperclip, Download, Mic, MicOff, VideoOff, PhoneOff, Activity, Volume2, VolumeX } from 'lucide-react';
 import { Conversation, Message, Reflection } from '../types';
 
 interface ChatViewProps {
@@ -27,10 +27,185 @@ export const ChatView: React.FC<ChatViewProps> = ({
   const [reflectionText, setReflectionText] = useState('');
   const [isBreathingState, setIsBreathingState] = useState<'In' | 'Hold' | 'Out' | 'Pause'>('In');
   const [breathingProgress, setBreathingProgress] = useState(1); // 1 to 1.5 scale
-  
+
+  // Aura interactive video call & soundbath streams states
+  const [showVideoCall, setShowVideoCall] = useState(false);
+  const [isMicMuted, setIsMicMuted] = useState(false);
+  const [isVideoEnabled, setIsVideoEnabled] = useState(false);
+  const [isLocalVideoSwapped, setIsLocalVideoSwapped] = useState(false);
+  const [isSoundBathPlaying, setIsSoundBathPlaying] = useState(false);
+  const [activeSessionTimer, setActiveSessionTimer] = useState(0);
+  const [heartCoherence, setHeartCoherence] = useState(94);
+  const [videoCallGuidance, setVideoCallGuidance] = useState("Establishing secure holographic link...");
+
+  useEffect(() => {
+    if (showVideoCall && isVideoEnabled && localVideoRef.current && localStreamRef.current) {
+      localVideoRef.current.srcObject = localStreamRef.current;
+    }
+  }, [showVideoCall, isVideoEnabled, isLocalVideoSwapped]);
+
   const photoInputRef = useRef<HTMLInputElement>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const localVideoRef = useRef<HTMLVideoElement | null>(null);
+  const localStreamRef = useRef<MediaStream | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const droneOscRef = useRef<OscillatorNode | null>(null);
+  const soundBathTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const stopWebcamAndMic = () => {
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => track.stop());
+      localStreamRef.current = null;
+    }
+    setIsVideoEnabled(false);
+  };
+
+  const toggleSoundBath = () => {
+    if (isSoundBathPlaying) {
+      if (droneOscRef.current) {
+        try { droneOscRef.current.stop(); } catch (e) {}
+        droneOscRef.current = null;
+      }
+      if (soundBathTimerRef.current) {
+        clearInterval(soundBathTimerRef.current);
+        soundBathTimerRef.current = null;
+      }
+      setIsSoundBathPlaying(false);
+    } else {
+      try {
+        if (!audioCtxRef.current) {
+          audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+        }
+        const ctx = audioCtxRef.current;
+        if (ctx.state === 'suspended') {
+          ctx.resume();
+        }
+
+        const droneOsc = ctx.createOscillator();
+        const droneGain = ctx.createGain();
+        droneOsc.type = 'triangle';
+        droneOsc.frequency.setValueAtTime(136.1, ctx.currentTime);
+        droneGain.gain.setValueAtTime(0.08, ctx.currentTime);
+        droneOsc.connect(droneGain);
+        droneGain.connect(ctx.destination);
+        droneOsc.start();
+        droneOscRef.current = droneOsc;
+
+        const triggerBell = () => {
+          const bellOsc = ctx.createOscillator();
+          const bellGain = ctx.createGain();
+          bellOsc.type = 'sine';
+          const freqs = [396, 417, 432, 528, 639];
+          const chosenFreq = freqs[Math.floor(Math.random() * freqs.length)];
+          bellOsc.frequency.setValueAtTime(chosenFreq, ctx.currentTime);
+          
+          bellGain.gain.setValueAtTime(0.12, ctx.currentTime);
+          bellGain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 3.0);
+          
+          bellOsc.connect(bellGain);
+          bellGain.connect(ctx.destination);
+          bellOsc.start();
+          bellOsc.stop(ctx.currentTime + 3.5);
+        };
+
+        triggerBell();
+        soundBathTimerRef.current = setInterval(triggerBell, 4500);
+        setIsSoundBathPlaying(true);
+      } catch (err) {
+        console.error("Web Audio Sound Bath error:", err);
+      }
+    }
+  };
+
+  const toggleVideo = async () => {
+    if (isVideoEnabled) {
+      stopWebcamAndMic();
+    } else {
+      try {
+        setVideoCallGuidance("Accessing video sensor feed...");
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true
+        });
+        localStreamRef.current = stream;
+        // Apply to standard local video tag inside the modal next tick
+        setTimeout(() => {
+          if (localVideoRef.current) {
+            localVideoRef.current.srcObject = stream;
+          }
+        }, 150);
+        setIsVideoEnabled(true);
+        setVideoCallGuidance("Secure video uplink active.");
+      } catch (err) {
+        console.warn("Camera access denied or unavailable. Fallback to Aura Avatar active.", err);
+        setVideoCallGuidance("Video device un-acquired. Immersive Aura Presence activated.");
+        setIsVideoEnabled(false);
+      }
+    }
+  };
+
+  const handleLeaveCall = () => {
+    stopWebcamAndMic();
+    if (isSoundBathPlaying) {
+      toggleSoundBath();
+    }
+    setIsLocalVideoSwapped(false);
+    setShowVideoCall(false);
+  };
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (showVideoCall) {
+      setHeartCoherence(Math.floor(Math.random() * 8 + 92));
+      interval = setInterval(() => {
+        setActiveSessionTimer(prev => prev + 1);
+        setHeartCoherence(prev => {
+          const delta = Math.floor(Math.random() * 5) - 2;
+          return Math.max(85, Math.min(100, prev + delta));
+        });
+      }, 1000);
+    } else {
+      setActiveSessionTimer(0);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [showVideoCall]);
+
+  useEffect(() => {
+    if (!showVideoCall) return;
+    const tips = [
+      "Julian suggests: Breath deep, matches the light ripple.",
+      "Aura sync: Softening shoulders, centering attention.",
+      "Coherence feedback: Heart rate variability is stabilizing.",
+      "Bio-presence aligned. Sound bath gongs supporting your rhythm.",
+      "Sanctuary focus: Letting pass transient cognitive loops.",
+    ];
+    let tipIdx = 0;
+    const interval = setInterval(() => {
+      setVideoCallGuidance(tips[tipIdx % tips.length]);
+      tipIdx++;
+    }, 6000);
+    return () => {
+      clearInterval(interval);
+    };
+  }, [showVideoCall]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(track => track.stop());
+      }
+      if (soundBathTimerRef.current) {
+        clearInterval(soundBathTimerRef.current);
+      }
+      if (droneOscRef.current) {
+        try { droneOscRef.current.stop(); } catch (e) {}
+      }
+    };
+  }, []);
 
   const handlePhotoUploadClick = () => {
     setShowAddOptions(false);
@@ -179,8 +354,16 @@ export const ChatView: React.FC<ChatViewProps> = ({
           </div>
         </div>
         <div className="flex items-center gap-4 text-on-surface-variant">
-          <button className="hover:opacity-80 transition-opacity p-2 rounded-full hover:bg-surface-container-low">
+          <button 
+            onClick={() => {
+              setShowVideoCall(true);
+              setVideoCallGuidance("Syncing holographic presence...");
+            }}
+            className="hover:opacity-80 transition-all p-2 rounded-full hover:bg-surface-container-low text-primary relative flex items-center justify-center cursor-pointer"
+            title="Start Immersive Presence Call"
+          >
             <Video className="w-5 h-5" />
+            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-secondary rounded-full animate-ping"></span>
           </button>
           <button className="hover:opacity-80 transition-opacity p-2 rounded-full hover:bg-surface-container-low">
             <MoreVertical className="w-5 h-5" />
@@ -618,6 +801,260 @@ export const ChatView: React.FC<ChatViewProps> = ({
             >
               Cancel
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Immersive Full Screen Presence Call Overlay */}
+      {showVideoCall && (
+        <div className="fixed inset-0 bg-neutral-950/95 backdrop-blur-2xl z-50 flex flex-col md:flex-row p-4 md:p-6 gap-4 md:gap-6 text-white animate-fade-in font-sans">
+          {/* Main Visual Stream Viewport */}
+          <div className="flex-grow flex flex-col justify-between bg-neutral-900/60 rounded-3xl p-5 border border-white/5 relative overflow-hidden min-h-[350px] md:min-h-[450px]">
+            {/* Background Stream View (either camera or slow gradient) */}
+            {isLocalVideoSwapped && isVideoEnabled ? (
+              <video 
+                ref={(el) => {
+                  localVideoRef.current = el;
+                  if (el && localStreamRef.current) {
+                    el.srcObject = localStreamRef.current;
+                  }
+                }}
+                autoPlay 
+                playsInline 
+                muted 
+                onClick={() => setIsLocalVideoSwapped(false)}
+                className="absolute inset-x-0 inset-y-0 w-full h-full object-cover rounded-3xl cursor-pointer hover:opacity-90 transition-all z-0"
+                title="Click to minimize"
+              />
+            ) : (
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(98,111,88,0.18),transparent_55%)] pointer-events-none animate-pulse duration-[6000ms] z-0" />
+            )}
+            
+            {/* Upper Info Row */}
+            <div className="flex items-center justify-between z-10 w-full">
+              <div className="flex items-center gap-3 bg-black/40 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/5">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[10px] uppercase font-mono tracking-widest font-semibold text-emerald-400">
+                  {isLocalVideoSwapped ? "Your Stream Enlarged" : "Live Presence Sync active"}
+                </span>
+              </div>
+              <div className="bg-black/40 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/5 font-mono text-xs font-semibold">
+                {String(Math.floor(activeSessionTimer / 60)).padStart(2, '0')}:{String(activeSessionTimer % 60).padStart(2, '0')}
+              </div>
+            </div>
+
+            {/* Central Immersive Remote Participant Visualizer or Notification Overlay */}
+            {!isLocalVideoSwapped ? (
+              <div className="flex flex-col items-center justify-center z-10 my-auto text-center gap-6 relative">
+                <div className="relative flex items-center justify-center">
+                  {/* Visual breathing ring */}
+                  <span className="absolute w-36 h-36 rounded-full bg-primary/20 animate-ping duration-[3500ms]" />
+                  <span className="absolute w-28 h-28 rounded-full bg-secondary/15 animate-pulse duration-[2000ms]" />
+
+                  {conversation.avatar ? (
+                    <img 
+                      src={conversation.avatar} 
+                      alt={conversation.name} 
+                      className="w-24 h-24 rounded-full object-cover border-4 border-white/10 shadow-2xl relative z-10 animate-fade-in"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div className="w-24 h-24 rounded-full bg-primary/20 border-4 border-white/10 shadow-2xl relative z-10 flex items-center justify-center text-primary text-xl font-bold font-headline animate-fade-in">
+                      {conversation.name.split(' ').map(n => n[0]).join('')}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <h2 className="text-xl font-headline font-semibold text-white mb-1">{conversation.name}</h2>
+                  <p className="text-xs text-outline tracking-wider uppercase font-mono">{conversation.subLabel || "Wellness Companion"}</p>
+                </div>
+
+                {/* Solfeggio sound particle visualization */}
+                {isSoundBathPlaying && (
+                  <div className="flex gap-1 h-8 items-end justify-center transition-all">
+                    {[...Array(12)].map((_, i) => (
+                      <span 
+                        key={i} 
+                        className="w-1 bg-gradient-to-t from-primary/60 to-secondary/80 rounded-full animate-bounce"
+                        style={{ 
+                          height: `${Math.floor(Math.random() * 24) + 8}px`,
+                          animationDelay: `${i * 120}ms`,
+                          animationDuration: `${1200 + (i % 3) * 300}ms`
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div 
+                onClick={() => setIsLocalVideoSwapped(false)}
+                className="flex flex-col items-center justify-center z-10 my-auto text-center gap-3 relative bg-black/50 backdrop-blur-md px-6 py-4 rounded-3xl border border-white/15 max-w-sm mx-auto cursor-pointer hover:bg-black/60 transition-colors"
+              >
+                <Activity className="w-8 h-8 text-secondary animate-pulse" />
+                <span className="text-xs uppercase font-mono tracking-widest text-emerald-300 font-semibold">Local Stream Primary</span>
+                <p className="text-[10px] text-stone-300">Self-view is maximized. Click anyway here to minimize.</p>
+              </div>
+            )}
+
+            {/* Bottom Guideline Box */}
+            <div className="z-10 mt-auto bg-black/50 backdrop-blur-md p-4 rounded-2xl border border-white/5 w-full flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                <Sparkles className="w-4 h-4 text-primary" />
+              </div>
+              <p className="text-xs text-stone-200 text-left leading-relaxed">
+                {videoCallGuidance}
+              </p>
+            </div>
+          </div>
+
+          {/* Right Panel: Local Feed, Soundbath Synth & Stats */}
+          <div className="w-full md:w-80 shrink-0 flex flex-col gap-4 md:gap-5 justify-between">
+            {/* Visual Stream Local Viewport */}
+            <div 
+              onClick={() => isVideoEnabled && setIsLocalVideoSwapped(!isLocalVideoSwapped)}
+              className={`bg-neutral-900/60 rounded-3xl p-4 border border-white/5 relative overflow-hidden aspect-[4/3] flex flex-col items-center justify-center transition-all ${isVideoEnabled ? 'cursor-pointer hover:border-primary/40 hover:bg-neutral-800/80' : ''}`}
+              title={isVideoEnabled ? (isLocalVideoSwapped ? "Minimize your preview" : "Maximize your preview") : "Camera is inactive"}
+            >
+              {!isLocalVideoSwapped ? (
+                isVideoEnabled ? (
+                  <video 
+                    ref={(el) => {
+                      localVideoRef.current = el;
+                      if (el && localStreamRef.current) {
+                        el.srcObject = localStreamRef.current;
+                      }
+                    }}
+                    autoPlay 
+                    playsInline 
+                    muted 
+                    className="absolute inset-x-0 inset-y-0 w-full h-full object-cover rounded-2xl"
+                  />
+                ) : (
+                  <div className="text-center flex flex-col items-center gap-3">
+                    <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-primary/30 to-secondary/30 flex items-center justify-center text-primary border border-white/10 animate-pulse">
+                      <Activity className="w-6 h-6 text-primary" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-mono tracking-wider font-semibold text-primary">Ronnie (You)</span>
+                      <p className="text-xs text-outline mt-0.5">Aura Avatar Stream Only</p>
+                    </div>
+                  </div>
+                )
+              ) : (
+                <div className="text-center flex flex-col items-center gap-2 animate-fade-in">
+                  <div className="relative">
+                    <span className="absolute -inset-1 rounded-full bg-secondary/10 animate-ping duration-[3000ms]" />
+                    {conversation.avatar ? (
+                      <img 
+                        src={conversation.avatar} 
+                        alt={conversation.name} 
+                        className="w-12 h-12 rounded-full object-cover border border-white/20 relative z-10"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-primary/20 border border-white/20 relative z-10 flex items-center justify-center text-primary text-xs font-semibold">
+                        {conversation.name.split(' ').map(n => n[0]).join('')}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-mono tracking-wider font-semibold text-secondary">{conversation.name}</span>
+                    <p className="text-[9px] text-outline">Wellness Companion</p>
+                  </div>
+                </div>
+              )}
+              {/* Overlay Label */}
+              <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md px-3 py-1 rounded-xl border border-white/5 text-[9px] uppercase tracking-wider font-mono">
+                {!isLocalVideoSwapped ? "Local Presence" : `${conversation.name} Corner`}
+              </div>
+            </div>
+
+            {/* Bio-Coherence Vitality Status */}
+            <div className="bg-neutral-900/40 rounded-3xl p-5 border border-white/5 flex flex-col gap-4">
+              <span className="text-[10px] uppercase font-mono tracking-widest text-outline">Bio-coherence indicators</span>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-2xl font-mono font-bold text-primary leading-none">{heartCoherence}%</span>
+                  <p className="text-[10px] text-outline mt-0.5">Heart Sync Score</p>
+                </div>
+                <div className="flex h-6 w-16 items-center gap-0.5 overflow-hidden">
+                  {[...Array(6)].map((_, i) => (
+                    <span 
+                      key={i} 
+                      className="w-1 bg-primary/70 rounded-full"
+                      style={{ 
+                        height: `${Math.floor(Math.random() * 16) + 4}px`
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="h-px bg-white/5 w-full" />
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-lg font-mono font-bold text-secondary">{Math.floor(activeSessionTimer / 8)}</span>
+                  <p className="text-[10px] text-outline mt-0.5">Zen Deep Breaths</p>
+                </div>
+                <div className="text-right">
+                  <span className="text-xs font-semibold text-stone-300">Optimal (5.5s)</span>
+                  <p className="text-[10px] text-outline mt-0.5">Pacing Cycle</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Sound Bath Controls */}
+            <button 
+              onClick={toggleSoundBath}
+              className={`w-full py-3.5 px-4 rounded-2xl flex items-center justify-center gap-3 font-mono font-bold text-xs uppercase tracking-widest transition-all cursor-pointer ${
+                isSoundBathPlaying 
+                  ? 'bg-secondary text-neutral-950 shadow-lg shadow-secondary/20 hover:scale-[1.01]' 
+                  : 'bg-white/5 hover:bg-white/10 text-stone-200 border border-white/5'
+              }`}
+            >
+              {isSoundBathPlaying ? <Volume2 className="w-4 h-4 animate-bounce" /> : <VolumeX className="w-4 h-4" />}
+              <span>{isSoundBathPlaying ? "Active Solfeggio Gongs" : "Muted Solfeggio Gongs"}</span>
+            </button>
+
+            {/* Bottom Call controls and hangup */}
+            <div className="flex gap-3 justify-between">
+              <button 
+                onClick={() => setIsMicMuted(!isMicMuted)}
+                className={`flex-1 py-3.5 rounded-2xl flex items-center justify-center border transition-all cursor-pointer ${
+                  isMicMuted 
+                    ? 'bg-red-500/10 border-red-500/20 text-red-400' 
+                    : 'bg-white/5 hover:bg-white/10 border-white/5 text-stone-200'
+                }`}
+                title="Mute/Unmute Mic"
+              >
+                {isMicMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+              </button>
+
+              <button 
+                onClick={toggleVideo}
+                className={`flex-1 py-3.5 rounded-2xl flex items-center justify-center border transition-all cursor-pointer ${
+                  isVideoEnabled 
+                    ? 'bg-primary/20 border-primary/30 text-primary' 
+                    : 'bg-white/5 hover:bg-white/10 border-white/5 text-stone-200'
+                }`}
+                title="Enable/Disable Video Stream"
+              >
+                {isVideoEnabled ? <Camera className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
+              </button>
+
+              <button 
+                onClick={handleLeaveCall}
+                className="flex-[1.8] bg-red-500 hover:bg-red-600 active:scale-95 text-white py-3.5 rounded-2xl flex items-center justify-center gap-2 font-mono font-bold text-xs uppercase tracking-widest transition-all shadow-lg shadow-red-500/20 cursor-pointer"
+                title="End Presence Session"
+              >
+                <PhoneOff className="w-4 h-4" />
+                <span>Disconnect</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
