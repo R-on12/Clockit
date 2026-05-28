@@ -657,7 +657,7 @@ export default function App() {
       {currentTab !== 'active_guide_chat' && (
         <header className="sticky top-0 z-50 px-6 py-4 flex items-center justify-between glass-pill transition-all" id="app-primary-sticky-header">
           <div className="flex items-center gap-4">
-            <button className="w-10 h-10 flex items-center justify-center rounded-full overflow-hidden group" id="main-sidebar-hamburger">
+            <button className="w-10 h-10 flex items-center justify-center rounded-full overflow-hidden group bg-surface-container/20 border border-primary/20 outline outline-2 outline-primary/50 outline-offset-2 hover:outline-primary hover:border-primary/40 transition-all duration-300" id="main-sidebar-hamburger">
               <img 
                 src="/src/assets/images/hand_logo_outline_1779806157572.png" 
                 alt="Clockit Pinch Logo" 
