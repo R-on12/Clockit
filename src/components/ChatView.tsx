@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Video, MoreVertical, Plus, Send, Sparkles, X, Heart, FileText, Image, Camera, Paperclip, Download, Mic, MicOff, VideoOff, PhoneOff, Activity, Volume2, VolumeX } from 'lucide-react';
+import { ArrowLeft, Video, Phone, MoreVertical, Plus, Send, Sparkles, X, Heart, FileText, Image, Camera, Paperclip, Download, Mic, MicOff, VideoOff, PhoneOff, Activity, Volume2, VolumeX } from 'lucide-react';
 import { Conversation, Message, Reflection } from '../types';
 
 interface ChatViewProps {
@@ -37,6 +37,11 @@ export const ChatView: React.FC<ChatViewProps> = ({
   const [activeSessionTimer, setActiveSessionTimer] = useState(0);
   const [heartCoherence, setHeartCoherence] = useState(94);
   const [videoCallGuidance, setVideoCallGuidance] = useState("Establishing secure holographic link...");
+
+  // Aura immersive audio call states
+  const [showAudioCall, setShowAudioCall] = useState(false);
+  const [audioCallGuidance, setAudioCallGuidance] = useState("Establishing secure voice alignment...");
+  const [isMicAccessGranted, setIsMicAccessGranted] = useState(false);
 
   useEffect(() => {
     if (showVideoCall && isVideoEnabled && localVideoRef.current && localStreamRef.current) {
@@ -154,9 +159,34 @@ export const ChatView: React.FC<ChatViewProps> = ({
     setShowVideoCall(false);
   };
 
+  const startAudioCall = async () => {
+    setShowAudioCall(true);
+    setAudioCallGuidance("Accessing audio stream...");
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true
+      });
+      localStreamRef.current = stream;
+      setIsMicAccessGranted(true);
+      setAudioCallGuidance("Secure vocal link established. Enjoy the resonance.");
+    } catch (err) {
+      console.warn("Microphone access denied or unavailable. Fallback to Aura Avatar active.", err);
+      setAudioCallGuidance("Vocal access un-acquired. Immersive Aura Voice link enabled.");
+      setIsMicAccessGranted(false);
+    }
+  };
+
+  const handleLeaveAudioCall = () => {
+    stopWebcamAndMic();
+    if (isSoundBathPlaying) {
+      toggleSoundBath();
+    }
+    setShowAudioCall(false);
+  };
+
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (showVideoCall) {
+    if (showVideoCall || showAudioCall) {
       setHeartCoherence(Math.floor(Math.random() * 8 + 92));
       interval = setInterval(() => {
         setActiveSessionTimer(prev => prev + 1);
@@ -171,10 +201,10 @@ export const ChatView: React.FC<ChatViewProps> = ({
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [showVideoCall]);
+  }, [showVideoCall, showAudioCall]);
 
   useEffect(() => {
-    if (!showVideoCall) return;
+    if (!showVideoCall && !showAudioCall) return;
     const tips = [
       "Julian suggests: Breath deep, matches the light ripple.",
       "Aura sync: Softening shoulders, centering attention.",
@@ -184,13 +214,17 @@ export const ChatView: React.FC<ChatViewProps> = ({
     ];
     let tipIdx = 0;
     const interval = setInterval(() => {
-      setVideoCallGuidance(tips[tipIdx % tips.length]);
+      if (showVideoCall) {
+        setVideoCallGuidance(tips[tipIdx % tips.length]);
+      } else if (showAudioCall) {
+        setAudioCallGuidance(tips[tipIdx % tips.length]);
+      }
       tipIdx++;
     }, 6000);
     return () => {
       clearInterval(interval);
     };
-  }, [showVideoCall]);
+  }, [showVideoCall, showAudioCall]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -354,6 +388,14 @@ export const ChatView: React.FC<ChatViewProps> = ({
           </div>
         </div>
         <div className="flex items-center gap-4 text-on-surface-variant">
+          <button 
+            onClick={startAudioCall}
+            className="hover:opacity-80 transition-all p-2 rounded-full hover:bg-surface-container-low text-primary relative flex items-center justify-center cursor-pointer"
+            title="Start Mindful Audio Call"
+          >
+            <Phone className="w-5 h-5" />
+            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></span>
+          </button>
           <button 
             onClick={() => {
               setShowVideoCall(true);
@@ -1050,6 +1092,168 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 onClick={handleLeaveCall}
                 className="flex-[1.8] bg-red-500 hover:bg-red-600 active:scale-95 text-white py-3.5 rounded-2xl flex items-center justify-center gap-2 font-mono font-bold text-xs uppercase tracking-widest transition-all shadow-lg shadow-red-500/20 cursor-pointer"
                 title="End Presence Session"
+              >
+                <PhoneOff className="w-4 h-4" />
+                <span>Disconnect</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Immersive Full Screen Audio Sanctuary Call Overlay */}
+      {showAudioCall && (
+        <div className="fixed inset-0 bg-stone-950/95 backdrop-blur-2xl z-50 flex flex-col md:flex-row p-4 md:p-6 gap-4 md:gap-6 text-white animate-fade-in font-sans">
+          {/* Main Sound Wave & Aura Viewport */}
+          <div className="flex-grow flex flex-col justify-between bg-stone-900/40 rounded-3xl p-5 border border-white/5 relative overflow-hidden min-h-[350px] md:min-h-[450px]">
+            {/* Background Moving Energy Aura for Sound Stream */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(139,150,129,0.12),transparent_60%)] pointer-events-none animate-pulse duration-[8000ms] z-0" />
+            
+            {/* Upper Status Row */}
+            <div className="flex items-center justify-between z-10 w-full">
+              <div className="flex items-center gap-3 bg-stone-950/60 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/5">
+                <div className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
+                <span className="text-[10px] uppercase font-mono tracking-widest font-semibold text-primary">Mindful Voice Alignment Active</span>
+              </div>
+              <div className="bg-stone-950/60 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/5 font-mono text-xs font-semibold text-primary-variant">
+                {String(Math.floor(activeSessionTimer / 60)).padStart(2, '0')}:{String(activeSessionTimer % 60).padStart(2, '0')}
+              </div>
+            </div>
+
+            {/* Central Holographic Pulsing Audio Orb */}
+            <div className="flex flex-col items-center justify-center z-10 my-auto text-center gap-6 relative">
+              <div className="relative flex items-center justify-center">
+                {/* Microtonal breath pulsing layers */}
+                <span className={`absolute w-44 h-44 rounded-full bg-primary/10 transition-transform duration-[4000ms] ease-in-out ${isMicMuted ? 'scale-90' : 'animate-ping'}`} />
+                <span className="absolute w-36 h-36 rounded-full bg-secondary/10 animate-pulse duration-[3000ms]" />
+
+                {conversation.avatar ? (
+                  <img 
+                    src={conversation.avatar} 
+                    alt={conversation.name} 
+                    className="w-28 h-28 rounded-full object-cover border-[3px] border-primary/20 shadow-[0_0_50px_rgba(139,150,129,0.15)] relative z-10 hover:scale-105 transition-transform duration-500"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div className="w-28 h-28 rounded-full bg-primary/20 border-[3px] border-primary/20 shadow-2xl relative z-10 flex items-center justify-center text-primary text-2xl font-bold font-headline">
+                    {conversation.name.split(' ').map(n => n[0]).join('')}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <span className="text-[10px] text-primary font-mono tracking-widest uppercase font-semibold">Voice Stream Synced</span>
+                <h2 className="text-2xl font-headline font-semibold text-stone-100 mt-1 mb-1">{conversation.name}</h2>
+                <p className="text-xs text-outline tracking-wider uppercase font-mono">{conversation.subLabel || "Wellness Companion"}</p>
+              </div>
+
+              {/* Active Voice Waveform Visualizer */}
+              <div className="flex gap-1.5 h-10 items-center justify-center mt-2 max-w-xs mx-auto px-4 py-1.5 rounded-full bg-stone-950/30 border border-white/5 backdrop-blur-sm">
+                {[...Array(14)].map((_, i) => (
+                  <span 
+                    key={i} 
+                    className={`w-1 rounded-full transition-all duration-300 ${isMicMuted ? 'bg-stone-600 h-1' : 'bg-gradient-to-t from-primary/70 to-secondary/80 animate-bounce'}`}
+                    style={{ 
+                      height: isMicMuted ? '4px' : `${Math.floor(Math.random() * 24) + 6}px`,
+                      animationDelay: `${i * 70}ms`,
+                      animationDuration: `${800 + (i % 4) * 200}ms`
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Bottom Guidance Box */}
+            <div className="z-10 mt-auto bg-stone-950/55 backdrop-blur-md p-4 rounded-2xl border border-white/5 w-full flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                <Sparkles className="w-4 h-4 text-primary" />
+              </div>
+              <p className="text-xs text-stone-200 text-left leading-relaxed">
+                {audioCallGuidance}
+              </p>
+            </div>
+          </div>
+
+          {/* Right Panel: Call dashboard, Soundbath Synth & Stats */}
+          <div className="w-full md:w-80 shrink-0 flex flex-col gap-4 md:gap-5 justify-between">
+            {/* Static Immersive Voice Branding Box */}
+            <div className="bg-stone-900/40 rounded-3xl p-5 border border-white/5 flex flex-col items-center justify-center text-center py-6 gap-3">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-primary/20 to-secondary/20 flex items-center justify-center text-primary border border-white/10">
+                <Mic className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-mono tracking-wider font-semibold text-primary">Ronnie (You)</span>
+                <p className="text-xs text-outline mt-0.5">Secure Mic Stream {isMicMuted ? "Muted" : "Active"}</p>
+              </div>
+            </div>
+
+            {/* Wellness Bio-Coherence Statistics */}
+            <div className="bg-stone-900/20 rounded-3xl p-5 border border-white/5 flex flex-col gap-4">
+              <span className="text-[10px] uppercase font-mono tracking-widest text-outline">Bio-resonance alignment</span>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-2xl font-mono font-bold text-primary leading-none">{heartCoherence}%</span>
+                  <p className="text-[10px] text-outline mt-0.5">Vocal Sync Score</p>
+                </div>
+                <div className="flex h-6 w-16 items-center gap-0.5 overflow-hidden">
+                  {[...Array(6)].map((_, i) => (
+                    <span 
+                      key={i} 
+                      className="w-1 bg-primary/50 rounded-full"
+                      style={{ 
+                        height: `${Math.floor(Math.random() * 16) + 4}px`
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="h-px bg-white/5 w-full" />
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-lg font-mono font-bold text-secondary">{Math.floor(activeSessionTimer / 8)}</span>
+                  <p className="text-[10px] text-outline mt-0.5">Zen Inhalations</p>
+                </div>
+                <div className="text-right">
+                  <span className="text-xs font-semibold text-stone-300 font-mono">5.5s Cycle</span>
+                  <p className="text-[10px] text-outline mt-0.5">Mindful Pacing</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Sound Bath Controls */}
+            <button 
+              onClick={toggleSoundBath}
+              className={`w-full py-3.5 px-4 rounded-2xl flex items-center justify-center gap-3 font-mono font-bold text-xs uppercase tracking-widest transition-all cursor-pointer ${
+                isSoundBathPlaying 
+                  ? 'bg-secondary text-neutral-950 shadow-lg shadow-secondary/20 hover:scale-[1.01]' 
+                  : 'bg-white/5 hover:bg-white/10 text-stone-200 border border-white/5'
+              }`}
+            >
+              {isSoundBathPlaying ? <Volume2 className="w-4 h-4 animate-bounce" /> : <VolumeX className="w-4 h-4" />}
+              <span>{isSoundBathPlaying ? "Active Solfeggio Gongs" : "Muted Solfeggio Gongs"}</span>
+            </button>
+
+            {/* Bottom Call Controls & Hangup */}
+            <div className="flex gap-4">
+              <button 
+                onClick={() => setIsMicMuted(!isMicMuted)}
+                className={`flex-1 py-3.5 rounded-2xl flex items-center justify-center border transition-all cursor-pointer ${
+                  isMicMuted 
+                    ? 'bg-red-500/10 border-red-500/20 text-red-400 font-semibold' 
+                    : 'bg-white/5 hover:bg-white/10 border-white/5 text-stone-200'
+                }`}
+                title="Mute/Unmute Mic"
+              >
+                {isMicMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+              </button>
+
+              <button 
+                onClick={handleLeaveAudioCall}
+                className="flex-[2.5] bg-red-500 hover:bg-red-600 active:scale-95 text-white py-3.5 rounded-2xl flex items-center justify-center gap-2 font-mono font-bold text-xs uppercase tracking-widest transition-all shadow-lg shadow-red-500/20 cursor-pointer"
+                title="End Audio Presence Session"
               >
                 <PhoneOff className="w-4 h-4" />
                 <span>Disconnect</span>
