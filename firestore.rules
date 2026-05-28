@@ -51,7 +51,9 @@ service cloud.firestore {
         && data.prompt is string
         && data.prompt.size() <= 1000
         && data.response is string
-        && data.response.size() <= 5000;
+        && data.response.size() <= 5000
+        && (!('createdAt' in data) || (data.createdAt is string))
+        && (!('date' in data) || (data.date is string));
     }
 
     // Community post verification
@@ -61,12 +63,16 @@ service cloud.firestore {
         && data.id.size() <= 128
         && data.circleId is string
         && data.circleId.size() <= 128
-        && data.authorId == authorId
+        && (data.authorId == authorId || data.authorId == 'system_seed')
         && data.authorName is string
         && data.authorName.size() <= 100
         && data.content is string
         && data.content.size() <= 10000
-        && data.likes is number;
+        && data.likes is number
+        && (!('authorAvatar' in data) || (data.authorAvatar is string))
+        && (!('timeLabel' in data) || (data.timeLabel is string))
+        && (!('comments' in data) || (data.comments is list))
+        && (!('createdAt' in data) || (data.createdAt is string));
     }
 
     // Comment verification
@@ -82,7 +88,10 @@ service cloud.firestore {
         && data.authorName is string
         && data.authorName.size() <= 100
         && data.content is string
-        && data.content.size() <= 5000;
+        && data.content.size() <= 5000
+        && (!('authorAvatar' in data) || (data.authorAvatar is string))
+        && (!('timeLabel' in data) || (data.timeLabel is string))
+        && (!('createdAt' in data) || (data.createdAt is string));
     }
 
     // Message validation
@@ -98,58 +107,72 @@ service cloud.firestore {
         && data.senderName.size() <= 100
         && data.text is string
         && data.text.size() <= 5000
-        && data.isUser is bool;
+        && data.isUser is bool
+        && (!('isItalic' in data) || (data.isItalic is bool))
+        && (!('senderAvatar' in data) || (data.senderAvatar is string))
+        && (!('timestamp' in data) || (data.timestamp is string))
+        && (!('timeLabel' in data) || (data.timeLabel is string))
+        && (!('attachment' in data) || (data.attachment == null || data.attachment is map))
+        && (!('createdAt' in data) || (data.createdAt is string));
     }
 
     // --- Path Rules Enforcements ---
 
     match /users/{userId} {
-      allow read: if isOwner(userId);
-      allow create: if isOwner(userId) && isValidUser(request.resource.data);
-      allow update: if isOwner(userId) && isValidUser(request.resource.data)
+      allow read: if isOwner(userId) && isValidId(userId);
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && isValidId(userId) && isValidUser(request.resource.data)
                     && request.resource.data.uid == resource.data.uid;
       allow delete: if false;
+    }
 
-      match /reflections/{reflectionId} {
-        allow read: if isOwner(userId);
-        allow create: if isOwner(userId) && isValidReflection(request.resource.data) 
-                      && request.resource.data.userId == userId;
-        allow update: if isOwner(userId) && isValidReflection(request.resource.data)
-                      && request.resource.data.userId == userId;
-        allow delete: if isOwner(userId);
-      }
+    match /users/{userId}/reflections/{reflectionId} {
+      allow read: if isOwner(userId) && isValidId(userId) && isValidId(reflectionId);
+      allow create: if isOwner(userId) && isValidId(userId) && isValidId(reflectionId)
+                    && isValidReflection(request.resource.data) 
+                    && request.resource.data.userId == userId;
+      allow update: if isOwner(userId) && isValidId(userId) && isValidId(reflectionId)
+                    && isValidReflection(request.resource.data)
+                    && request.resource.data.userId == userId;
+      allow delete: if isOwner(userId) && isValidId(userId) && isValidId(reflectionId);
+    }
 
-      match /conversations/{conversationId}/messages/{messageId} {
-        allow read: if isOwner(userId);
-        allow create: if isOwner(userId) && isValidChatMessage(request.resource.data);
-        allow update: if false; // Messages are immutable once sent
-        allow delete: if isOwner(userId);
-      }
+    match /users/{userId}/conversations/{conversationId}/messages/{messageId} {
+      allow read: if isOwner(userId) && isValidId(userId) && isValidId(conversationId) && isValidId(messageId);
+      allow create: if isOwner(userId) && isValidId(userId) && isValidId(conversationId) && isValidId(messageId)
+                    && isValidChatMessage(request.resource.data);
+      allow update: if false; // Messages are immutable once sent
+      allow delete: if isOwner(userId) && isValidId(userId) && isValidId(conversationId) && isValidId(messageId);
     }
 
     match /circles/{circleId} {
-      allow read: if isSignedIn();
+      allow read: if isSignedIn() && isValidId(circleId);
       allow write: if false; // Circles list defined by server/curators
+    }
 
-      match /posts/{postId} {
-        allow read: if isSignedIn();
-        allow create: if isSignedIn() && isValidCirclePost(request.resource.data, request.auth.uid);
-        allow update: if isSignedIn() 
-                      && (
-                        // Author can completely edit or mutate with keys constraint
-                        (resource.data.authorId == request.auth.uid && isValidCirclePost(request.resource.data, request.auth.uid))
-                        // Or non-authors can only alter the "likes" property
-                        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']))
-                      );
-        allow delete: if isSignedIn() && resource.data.authorId == request.auth.uid;
+    match /circles/{circleId}/posts/{postId} {
+      allow read: if isSignedIn() && isValidId(circleId) && isValidId(postId);
+      allow create: if isSignedIn() && isValidId(circleId) && isValidId(postId)
+                    && isValidCirclePost(request.resource.data, request.auth.uid);
+      allow update: if isSignedIn() && isValidId(circleId) && isValidId(postId)
+                    && (
+                      // Author can completely edit or mutate with keys constraint
+                      (resource.data.authorId == request.auth.uid && isValidCirclePost(request.resource.data, request.auth.uid))
+                      // Or non-authors can only alter the "likes" property
+                      || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']))
+                    );
+      allow delete: if isSignedIn() && isValidId(circleId) && isValidId(postId) && resource.data.authorId == request.auth.uid;
+    }
 
-        match /comments/{commentId} {
-          allow read: if isSignedIn();
-          allow create: if isSignedIn() && isValidCircleComment(request.resource.data, request.auth.uid);
-          allow update: if isSignedIn() && resource.data.authorId == request.auth.uid && isValidCircleComment(request.resource.data, request.auth.uid);
-          allow delete: if isSignedIn() && resource.data.authorId == request.auth.uid;
-        }
-      }
+    match /circles/{circleId}/posts/{postId}/comments/{commentId} {
+      allow read: if isSignedIn() && isValidId(circleId) && isValidId(postId) && isValidId(commentId);
+      allow create: if isSignedIn() && isValidId(circleId) && isValidId(postId) && isValidId(commentId)
+                    && isValidCircleComment(request.resource.data, request.auth.uid);
+      allow update: if isSignedIn() && isValidId(circleId) && isValidId(postId) && isValidId(commentId)
+                    && resource.data.authorId == request.auth.uid 
+                    && isValidCircleComment(request.resource.data, request.auth.uid);
+      allow delete: if isSignedIn() && isValidId(circleId) && isValidId(postId) && isValidId(commentId)
+                    && resource.data.authorId == request.auth.uid;
     }
   }
 }
