@@ -39,7 +39,17 @@ export default function App() {
   const [conversations, setConversations] = useState<Conversation[]>(initialConversations);
   const [circles, setCircles] = useState<CommunityCircle[]>(initialCircles);
   const [reflections, setReflections] = useState<Reflection[]>(initialReflections);
-  const [userSettings, setUserSettings] = useState<UserSettings>(initialUserSettings);
+  const [userSettings, setUserSettings] = useState<UserSettings>(() => {
+    const saved = localStorage.getItem('clockit_user_settings');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return initialUserSettings;
+      }
+    }
+    return initialUserSettings;
+  });
   const [vitalState, setVitalState] = useState<VitalState>(initialVitalState);
   const [activeConversationId, setActiveConversationId] = useState<string>('wellness_guide');
   const [showNewChatOverlay, setShowNewChatOverlay] = useState<boolean>(false);
@@ -80,7 +90,7 @@ export default function App() {
       const userDoc = await getDoc(userDocRef);
       if (userDoc.exists()) {
         const data = userDoc.data();
-        setUserSettings({
+        const loadedSettings = {
           name: data.name || initialName,
           membership: data.membership || 'Premium Member',
           zenLevel: data.zenLevel ?? 12,
@@ -88,7 +98,9 @@ export default function App() {
           notifications: data.notifications || 'Smart Alerts',
           themeMode: (data.themeMode as 'light' | 'dark' | 'sepia' | 'ocean' | 'forest' | 'cosmic') || 'light',
           smartAlerts: data.smartAlerts ?? true,
-        });
+        };
+        setUserSettings(loadedSettings);
+        localStorage.setItem('clockit_user_settings', JSON.stringify(loadedSettings));
         setVitalState({
           sleep: { current: data.sleepCurrent ?? 7.2, target: data.sleepTarget ?? 8.0, unit: 'h' },
           steps: { current: data.stepsCurrent ?? 4.8, target: data.stepsTarget ?? 10.0, unit: 'k' },
@@ -112,7 +124,7 @@ export default function App() {
           waterTarget: 2.0
         };
         await setDoc(userDocRef, defaultDoc);
-        setUserSettings({
+        const defaultSettings = {
           name: initialName,
           membership: 'Premium Member',
           zenLevel: 12,
@@ -120,7 +132,9 @@ export default function App() {
           notifications: 'Smart Alerts',
           themeMode: 'light',
           smartAlerts: true,
-        });
+        };
+        setUserSettings(defaultSettings);
+        localStorage.setItem('clockit_user_settings', JSON.stringify(defaultSettings));
         setVitalState(initialVitalState);
       }
     } catch (error) {
@@ -428,6 +442,7 @@ export default function App() {
         ...prev,
         zenLevel: prev.zenLevel + 1
       };
+      localStorage.setItem('clockit_user_settings', JSON.stringify(updated));
 
       if (currentUserUid) {
         const refDocRef = doc(db, 'users', currentUserUid, 'reflections', newRef.id);
@@ -443,7 +458,7 @@ export default function App() {
         });
 
         const userDocRef = doc(db, 'users', currentUserUid);
-        setDoc(userDocRef, { zenLevel: updated.zenLevel }, { merge: true }).catch(err => {
+        setDoc(userDocRef, { uid: currentUserUid, zenLevel: updated.zenLevel }, { merge: true }).catch(err => {
           handleFirestoreError(err, OperationType.UPDATE, `users/${currentUserUid}`);
         });
       }
@@ -455,9 +470,11 @@ export default function App() {
   const handleUpdateUserSettings = (newSettings: Partial<UserSettings>) => {
     setUserSettings(prev => {
       const updated = { ...prev, ...newSettings };
+      localStorage.setItem('clockit_user_settings', JSON.stringify(updated));
       if (currentUserUid) {
         const userDocRef = doc(db, 'users', currentUserUid);
         setDoc(userDocRef, {
+          uid: currentUserUid,
           name: updated.name,
           membership: updated.membership,
           zenLevel: updated.zenLevel,
@@ -584,6 +601,7 @@ export default function App() {
   // Sign out simulation
   const handleSignOut = async () => {
     await logoutUser();
+    localStorage.removeItem('clockit_user_settings');
     setVitalState(initialVitalState);
     setCurrentTab('home');
     setIsLoggedIn(false);
@@ -672,7 +690,7 @@ export default function App() {
           >
             <img 
               alt={`${userSettings.name} profile`} 
-              className="w-full h-full object-cover" 
+              className="w-full h-full object-cover transition-all duration-500 ease-out group-hover:scale-110" 
               src={userSettings.avatar || "https://lh3.googleusercontent.com/aida-public/AB6AXuDoyaWl51725uwC6lMhOaK-1M9NPiGyMaUVkwLk2kEwMW2qwOzZw69c0PhlQIRB159p-2KQUuJPx2wagma4TziOrBe_sSIN8HuKKMZONsgDfZEQrlDLFO6-_mj205uXzIoo4UaPA6aJjYJQtt-7_L6xAxvAWWq791mVYhQZPEFw3xMoHlIfod_Jh8136RnAAc90bO97692QHKkgZYGJTRQ6qeI6G64FVaHQucqsoe-3o8a8okxigAJ9Wstm2AdaQl8xNWNAW-8Yf7Rg"}
               referrerPolicy="no-referrer"
             />
