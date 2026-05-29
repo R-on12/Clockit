@@ -84,7 +84,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden border-2 border-primary-fixed/60 relative shrink-0">
               <img
                 className="w-full h-full object-cover"
-                alt="Ronnie Rose Studio Portrait"
+                alt={`${userSettings.name} Studio Portrait`}
                 src={userSettings.avatar || "https://lh3.googleusercontent.com/aida-public/AB6AXuDoyaWl51725uwC6lMhOaK-1M9NPiGyMaUVkwLk2kEwMW2qwOzZw69c0PhlQIRB159p-2KQUuJPx2wagma4TziOrBe_sSIN8HuKKMZONsgDfZEQrlDLFO6-_mj205uXzIoo4UaPA6aJjYJQtt-7_L6xAxvAWWq791mVYhQZPEFw3xMoHlIfod_Jh8136RnAAc90bO97692QHKkgZYGJTRQ6qeI6G64FVaHQucqsoe-3o8a8okxigAJ9Wstm2AdaQl8xNWNAW-8Yf7Rg"}
                 referrerPolicy="no-referrer"
               />
