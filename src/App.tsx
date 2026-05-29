@@ -90,8 +90,17 @@ export default function App() {
       const userDoc = await getDoc(userDocRef);
       if (userDoc.exists()) {
         const data = userDoc.data();
+        let nameToUse = data.name || initialName;
+        let shouldUpdateDoc = false;
+
+        // Correct race conditions where the Firestore doc was pre-maturely auto-created as 'Ronnie'
+        if ((data.name === 'Ronnie' || !data.name) && initialName && initialName !== 'Ronnie') {
+          nameToUse = initialName;
+          shouldUpdateDoc = true;
+        }
+
         const loadedSettings = {
-          name: data.name || initialName,
+          name: nameToUse,
           membership: data.membership || 'Premium Member',
           zenLevel: data.zenLevel ?? 12,
           avatar: data.avatar || initialUserSettings.avatar,
@@ -101,6 +110,9 @@ export default function App() {
         };
         setUserSettings(loadedSettings);
         localStorage.setItem('clockit_user_settings', JSON.stringify(loadedSettings));
+        if (shouldUpdateDoc) {
+          await setDoc(userDocRef, { uid, name: nameToUse }, { merge: true });
+        }
         setVitalState({
           sleep: { current: data.sleepCurrent ?? 7.2, target: data.sleepTarget ?? 8.0, unit: 'h' },
           steps: { current: data.stepsCurrent ?? 4.8, target: data.stepsTarget ?? 10.0, unit: 'k' },

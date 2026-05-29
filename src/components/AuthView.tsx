@@ -11,7 +11,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, defaultName }
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState(defaultName);
+  const [name, setName] = useState(defaultName === 'Ronnie' ? '' : defaultName);
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -26,7 +26,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, defaultName }
     }
 
     if (!isLogin && !name) {
-      setErrorMsg('Please provide your name or nickname to label your sanctuary.');
+      setErrorMsg('Please provide your name to label your sanctuary.');
       return;
     }
 
@@ -65,7 +65,8 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, defaultName }
     setIsLoading(true);
     try {
       const cred = await loginWithGoogle();
-      onAuthSuccess(cred.user.uid, cred.user.displayName || 'Ronnie', cred.user.email || '');
+      const fallbackName = cred.user.email ? cred.user.email.split('@')[0] : 'Zen Seeker';
+      onAuthSuccess(cred.user.uid, cred.user.displayName || fallbackName, cred.user.email || '');
     } catch (err: any) {
       console.error("Google login error:", err);
       if (err.code !== 'auth/popup-closed-by-user') {

@@ -2245,7 +2245,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       <Activity className="w-6 h-6 text-primary" />
                     </div>
                     <div>
-                      <span className="text-[10px] uppercase font-mono tracking-wider font-semibold text-primary">Ronnie (You)</span>
+                      <span className="text-[10px] uppercase font-mono tracking-wider font-semibold text-primary">{userName} (You)</span>
                       <p className="text-xs text-outline mt-0.5">Aura Avatar Stream Only</p>
                     </div>
                   </div>
@@ -2450,7 +2450,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 <Mic className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <span className="text-[10px] uppercase font-mono tracking-wider font-semibold text-primary">Ronnie (You)</span>
+                <span className="text-[10px] uppercase font-mono tracking-wider font-semibold text-primary">{userName} (You)</span>
                 <p className="text-xs text-outline mt-0.5">Secure Mic Stream {isMicMuted ? "Muted" : "Active"}</p>
               </div>
             </div>
