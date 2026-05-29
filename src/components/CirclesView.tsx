@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, MessageSquare, Plus, Share2, Tag, Calendar, UserPlus, Search, Star, Compass, MapPin, Sparkles, MessageCircle, AlertCircle } from 'lucide-react';
+import { motion } from 'motion/react';
 import { CommunityCircle, CommunityPost } from '../types';
 import { db } from '../firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
@@ -274,12 +275,57 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
                     <div className="flex items-center gap-6 pt-2 border-t border-outline-variant/10 text-outline">
                       <button 
                         onClick={() => handleLike(post.id)}
-                        className={`flex items-center gap-1.5 text-xs font-semibold tracking-wide hover:text-primary transition-colors ${
-                          post.hasLiked ? 'text-primary' : ''
+                        className={`group/like flex items-center gap-1.5 text-xs font-semibold tracking-wide transition-all duration-300 outline-none ${
+                          post.hasLiked 
+                            ? 'text-pink-500 font-bold' 
+                            : 'text-outline hover:text-pink-500'
                         }`}
+                        id={`like-btn-${post.id}`}
                       >
-                        <Heart className={`w-4 h-4 ${post.hasLiked ? 'fill-current' : ''}`} />
-                        <span>{post.likes}</span>
+                        <motion.div
+                          animate={{ scale: post.hasLiked ? [1, 1.45, 1] : 1 }}
+                          transition={{ duration: 0.35, ease: "easeOut" }}
+                          className="relative"
+                        >
+                          <Heart className={`w-4 h-4 transition-all duration-300 group-hover/like:scale-110 ${
+                            post.hasLiked 
+                              ? 'text-pink-500 fill-pink-500 stroke-pink-500 drop-shadow-[0_0_6px_rgba(236,72,153,0.5)]' 
+                              : 'text-outline hover:text-pink-500'
+                          }`} />
+                          
+                          {/* Sassy overlay floating particles when liked */}
+                          {post.hasLiked && (
+                            <>
+                              <motion.span
+                                initial={{ opacity: 1, scale: 0.5, y: 0, x: 0 }}
+                                animate={{ opacity: 0, scale: 1.2, y: -18, x: -10 }}
+                                transition={{ duration: 0.5 }}
+                                className="absolute text-[8px] pointer-events-none select-none text-pink-500"
+                              >
+                                🌸
+                              </motion.span>
+                              <motion.span
+                                initial={{ opacity: 1, scale: 0.5, y: 0, x: 0 }}
+                                animate={{ opacity: 0, scale: 1.2, y: -22, x: 8 }}
+                                transition={{ duration: 0.6, delay: 0.05 }}
+                                className="absolute text-[8px] pointer-events-none select-none text-pink-400"
+                              >
+                                💕
+                              </motion.span>
+                              <motion.span
+                                initial={{ opacity: 1, scale: 0.5, y: 0, x: 0 }}
+                                animate={{ opacity: 0, scale: 1, y: -14, x: -2 }}
+                                transition={{ duration: 0.4, delay: 0.1 }}
+                                className="absolute text-[6px] pointer-events-none select-none text-pink-500"
+                              >
+                                ✨
+                              </motion.span>
+                            </>
+                          )}
+                        </motion.div>
+                        <span className="tabular-nums transition-colors duration-300">
+                          {post.likes}
+                        </span>
                       </button>
                       <div className="flex items-center gap-1.5 text-xs font-semibold tracking-wide">
                         <MessageSquare className="w-4 h-4" />
