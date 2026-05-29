@@ -1,6 +1,6 @@
 {
   "name": "Clockit",
-  "description": "Clockit digital wellness sanctuary. Mindful journaling reflections, vitality biometrics tracking, and intimate community connection circles.",
+  "description": "Clockit: A high-fidelity real-time communication platform for direct messaging, community circles, media attachments, and immersive voice notes.",
   "requestFramePermissions": ["camera", "microphone"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
