@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Mail, Lock, User, Eye, EyeOff, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
 import { loginWithEmailAndPassword, registerWithEmailAndPassword, loginWithGoogle } from '../firebase';
+import logoUrl from '../assets/images/hand_logo_outline_1779806157572.png';
 
 interface AuthViewProps {
   onAuthSuccess: (uid: string, userName: string, email: string) => void;
@@ -94,7 +95,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, defaultName }
         <div className="text-center mb-10">
           <div className="inline-flex items-center justify-center w-14 h-14 bg-primary/10 rounded-full mb-4 overflow-hidden relative group" id="auth-logo-pinching-hand">
             <img 
-              src="/src/assets/images/hand_logo_outline_1779806157572.png" 
+              src={logoUrl} 
               alt="Clockit Pinch Logo" 
               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" 
               referrerPolicy="no-referrer"

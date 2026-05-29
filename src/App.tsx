@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { LayoutDashboard, MessageSquare, Users2, Settings, TrendingUp, Sparkles, UserCheck } from 'lucide-react';
+import logoUrl from './assets/images/hand_logo_outline_1779806157572.png';
 import {
   initialConversations,
   initialCircles,
@@ -687,7 +688,7 @@ export default function App() {
           <div className="flex items-center gap-4">
             <button className="w-10 h-10 flex items-center justify-center rounded-full overflow-hidden group bg-surface-container/20 border border-primary/20 outline outline-2 outline-primary/50 outline-offset-2 hover:outline-primary hover:border-primary/40 transition-all duration-300" id="main-sidebar-hamburger">
               <img 
-                src="/src/assets/images/hand_logo_outline_1779806157572.png" 
+                src={logoUrl} 
                 alt="Clockit Pinch Logo" 
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                 referrerPolicy="no-referrer"
