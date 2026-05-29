@@ -11,6 +11,179 @@ interface ChatViewProps {
   userName?: string;
 }
 
+const ALL_EMOJIS = [
+  // smileys
+  { char: '😊', keywords: 'smiley face happy smile correct warm joy love' },
+  { char: '😇', keywords: 'halo angel innocent blessed saint correct heaven' },
+  { char: '😂', keywords: 'laugh crying joy tears funny lol fun humor lmao' },
+  { char: '😭', keywords: 'cry sad despair weeping loud tragic unhappy tears' },
+  { char: '😍', keywords: 'heart eyes love crush adore romantic sweet' },
+  { char: '😘', keywords: 'kiss blowing love romance heart lips' },
+  { char: '🤪', keywords: 'zany crazy wild silly goofy eyes out' },
+  { char: '😎', keywords: 'cool sunglasses chill style boss awesome rad glasses' },
+  { char: '😡', keywords: 'angry mad fury red face rage annoyed' },
+  { char: '🥶', keywords: 'cold freezing blue ice winter frozen shiver' },
+  { char: '🤮', keywords: 'vomit sick green puke gross ill' },
+  { char: '😷', keywords: 'mask medical doctor sick hospital protect virus' },
+  { char: '🙄', keywords: 'roll eyes eye-roll sarcasm sigh annoy' },
+  { char: '🤔', keywords: 'thinking wonder ponder question doubt look head' },
+  { char: '🤫', keywords: 'shh quiet silence secret peace whisper' },
+  { char: '🥱', keywords: 'yawn tired sleepy bore wake' },
+  { char: '😴', keywords: 'sleep sleeping dream bedtime zzz resting nap' },
+  { char: '🥳', keywords: 'party celebrate hat blower confetti birthday win' },
+  { char: '🤯', keywords: 'mindblown explode brain shock mind head blow' },
+  { char: '🥵', keywords: 'hot sweat red fever sun summer heat' },
+  { char: '🥺', keywords: 'pleading puppy eyes beg mercy please cute sad' },
+  { char: '💩', keywords: 'poop turd smile pile brown dung' },
+  { char: '🤡', keywords: 'clown circus makeup funny joke' },
+  { char: '👽', keywords: 'alien ufo spacesuit outer extraterrestrial space' },
+  { char: '🤖', keywords: 'robot tech computer machine mechanical robotic android' },
+  { char: '🎃', keywords: 'pumpkin halloween jacko autumn lantern' },
+  { char: '💀', keywords: 'skull dead ghost skeleton bone hazard' },
+  // gestures
+  { char: '🙏', keywords: 'pray peace hands hope gravity thank gesture fold please namaste' },
+  { char: '👋', keywords: 'wave hello goodbye hi welcome greeting swipe' },
+  { char: '👍', keywords: 'thumbs up like good yes match correct confirm ok' },
+  { char: '👎', keywords: 'thumbs down dislike bad no reject' },
+  { char: '👊', keywords: 'fist punch hit cool bro fist-bump' },
+  { char: '✌️', keywords: 'victory peace sign two fingers' },
+  { char: '👌', keywords: 'ok okay nice perfect zero finger ring' },
+  { char: '👏', keywords: 'clap applaud hands good job congratulations praise bravo' },
+  { char: '🙌', keywords: 'hooray celebrate raise ceiling hands hands-up cheer' },
+  { char: '🤝', keywords: 'handshake deal agree partner match shake trust cooperation' },
+  { char: '💪', keywords: 'muscle strong gym flex power strength physical' },
+  { char: '🧘', keywords: 'yoga meditate zen peaceful spiritual lotus pose calm stream' },
+  { char: '🚶', keywords: 'walker pedestrian walking travel route' },
+  { char: '🏃', keywords: 'run athlete sprint fitness speed escape card' },
+  // nature
+  { char: '🌸', keywords: 'flower cherry blossom pink bloom spring floral botanical' },
+  { char: '🌹', keywords: 'rose red flower love romance valentines botanical' },
+  { char: '🌺', keywords: 'hibiscus flower tropical beach summer hawaii botanical' },
+  { char: '🌻', keywords: 'sunflower yellow plant summer botanical' },
+  { char: '🌼', keywords: 'blossom flower yellow botanical' },
+  { char: '🌷', keywords: 'tulip flower pink spring botanical' },
+  { char: '🍃', keywords: 'leaf breeze wind green nature growth environment' },
+  { char: '🍁', keywords: 'maple leaf autumn fall orange canada leaf' },
+  { char: '🍀', keywords: 'clover luck four leaf green saint luck' },
+  { char: '🌲', keywords: 'pine tree forest evergreen christmas holidays nature' },
+  { char: '🌴', keywords: 'palm island tropical warm summer beach sand' },
+  { char: '🌱', keywords: 'sprout seedling growth plant garden green life' },
+  { char: '🌿', keywords: 'herb greenery leaf medicinal garden eco spice' },
+  { char: '🌾', keywords: 'rice wheat grain plant harvest crop agriculture' },
+  { char: '🌊', keywords: 'wave water ocean sea splash storm surfer surf tsunami' },
+  { char: '☀️', keywords: 'sun hot bright clear day light skies weather' },
+  { char: '🌙', keywords: 'moon crescent night sleep stargazing dark skies' },
+  { char: '🪐', keywords: 'planet saturn cosmos space galaxy stars astronomy sky' },
+  { char: '⭐', keywords: 'star gold prize favorite rate rating yellow' },
+  { char: '✨', keywords: 'sparkles magic high quality clean glow stars shine shiny' },
+  { char: '🌈', keywords: 'rainbow colors pastel sky weather prism lgbt' },
+  { char: '🕊️', keywords: 'dove bird peace spirit white sky release fly' },
+  { char: '🧸', keywords: 'teddy bear plush toy cute forest stuffed doll' },
+  { char: '🐱', keywords: 'cat kitty pet animal sound meow whiskers feline' },
+  { char: '🐶', keywords: 'dog puppy pet bark animal puppy canine paw' },
+  { char: '🦊', keywords: 'fox smart clever orange animal wild predator' },
+  { char: '🦁', keywords: 'lion king force hair brave strong animal wild cat' },
+  { char: '🐼', keywords: 'panda bear bamboo cute asian black white' },
+  { char: '🐨', keywords: 'koala australian forest lazy cuddly' },
+  { char: '🦄', keywords: 'unicorn horse rainbow magic horn fantasy' },
+  // food
+  { char: '🍵', keywords: 'tea matcha green cup drink hot morning zen ceremony' },
+  { char: '☕', keywords: 'coffee caffeine mug morning drink hot cafe espresso' },
+  { char: '🍶', keywords: 'sake cup ceramic desk beverage alcohol warm' },
+  { char: '🍷', keywords: 'wine glass red celebrate party alcohol adult drink' },
+  { char: '🥤', keywords: 'soda cup straw cold beverage fastfood softdrink' },
+  { char: '🍎', keywords: 'apple red fruit healthy bite teacher snack' },
+  { char: '🍓', keywords: 'strawberry red berry fruit sweet berry red dessert' },
+  { char: '🍒', keywords: 'cherry red pair fruit dessert cherry double' },
+  { char: '🍋', keywords: 'lemon sour yellow citrus slice lemonade' },
+  { char: '🍍', keywords: 'pineapple tropical yellow sweet summer gold delicious' },
+  { char: '🍉', keywords: 'watermelon slice summer sweet green red melon' },
+  { char: '🍇', keywords: 'grapes purple bundle vineyard wine fruit' },
+  { char: '🥑', keywords: 'avocado green healthy toast superfood' },
+  { char: '🥦', keywords: 'broccoli green veggie tree fresh diet' },
+  { char: '🍕', keywords: 'pizza slice cheese party dinner fast food italian' },
+  { char: '🍔', keywords: 'burger beef fast food cheese meat sandwich' },
+  { char: '🍟', keywords: 'french fries potato yellow fast food chips potato' },
+  { char: '🍜', keywords: 'ramen noodles soup chopsticks bowl warm asian food' },
+  { char: '🍰', keywords: 'cake slice sweet birthday dessert baking slice birthday' },
+  { char: '🧁', keywords: 'cupcake baking frosting sweet dessert party' },
+  { char: '🍩', keywords: 'donut glazed chocolate sprinkle sweet pastry breakfast' },
+  { char: '🍿', keywords: 'popcorn movies cinema snack salt butter theater' },
+  { char: '🍪', keywords: 'cookie chocolate chip baked snack sweets' },
+  { char: '🍯', keywords: 'honey gold sweet jar beekeeping honeybee hive' },
+  // activities / travel
+  { char: '🚴', keywords: 'bicycle cyclist sports track wheels speed cycle fitness' },
+  { char: '🥋', keywords: 'martial arts karate🥋 belt training craft judo bjj daito' },
+  { char: '⚽', keywords: 'soccer football ball play sports match game goal' },
+  { char: '🏀', keywords: 'basketball orange ball hoop score play court basket' },
+  { char: '🏈', keywords: 'football sport match score brown rugby touchdown' },
+  { char: '🎾', keywords: 'tennis green ball racket court match' },
+  { char: '🎮', keywords: 'controller gaming video playstation xbox computer game controller' },
+  { char: '🎯', keywords: 'target bullseye aim focus shoot exact goal dart hit' },
+  { char: '🎲', keywords: 'dice roll random board game luck play cube' },
+  { char: '🎸', keywords: 'guitar music acoustics rock classic pluck strings instrumental' },
+  { char: '🎹', keywords: 'piano music keys pitch synth melody classical keyboard' },
+  { char: '🎨', keywords: 'art canvas paint brush colors graphic creative artist pallet' },
+  { char: '🎭', keywords: 'theater masks drama actor show arts comedy tragedy script' },
+  { char: '🎤', keywords: 'microphone sing vocal music audio device karaoke' },
+  { char: '🎧', keywords: 'headphones listen music privacy dj audio headset' },
+  { char: '🏆', keywords: 'trophy winner gold first first-place prize scale win award' },
+  { char: '🧭', keywords: 'compass navigation orient map direction adventure explore north' },
+  { char: '✈️', keywords: 'airplane flight fly sky travel airport transportation' },
+  { char: '🚗', keywords: 'car vehicle auto drive travel wheel automobile red' },
+  { char: '🚀', keywords: 'rocket space speed ship mars moon launch engine start' },
+  { char: '🏙️', keywords: 'skyline towers city town business dusk building skyscrapers' },
+  { char: '🏕️', keywords: 'camp forest pine bonfire tents sky outdoors mountains' },
+  // objects
+  { char: '💡', keywords: 'lightbulb idea bulb electric glow brightness yellow smart thought' },
+  { char: '🔑', keywords: 'key door access credential lock open unlock gold metal' },
+  { char: '🕯️', keywords: 'candle wax fire light flame wax wax zenn wax ambient scent' },
+  { char: '💻', keywords: 'laptop computer code tech dev screen internet computer pc tech' },
+  { char: '📱', keywords: 'phone cellular smartphone device call text contrast chat display' },
+  { char: '⌚', keywords: 'watch clock time duration hour dynamic smart watch' },
+  { char: '🔋', keywords: 'battery power active charging green energy cell electric' },
+  { char: '✉️', keywords: 'envelope mail letter post paper inbox message receive' },
+  { char: '📦', keywords: 'package deliver logistics amazon gift box brown parcel ship' },
+  { char: '📝', keywords: 'memo notes paper text write draft lines letter edit pen' },
+  { char: '📚', keywords: 'books library read school literature research pile reading' },
+  { char: '🎁', keywords: 'gift present birthday christmas wrap box bow surprise' },
+  { char: '🎈', keywords: 'balloon red party decoration high up float balloon helium' },
+  { char: '💵', keywords: 'cash money dollars dollar green wallet bills currency wealth' },
+  { char: '💎', keywords: 'diamond gem rich blue crystal stone shiny sapphire jewelry value' },
+  { char: '🩹', keywords: 'bandage bandaid health injury relief cure safety medicine aid' },
+  { char: '🔮', keywords: 'crystal ball magic fortune future transparent wizard mystic dream' },
+  // symbols
+  { char: '💖', keywords: 'sparkle heart love pink glowing glitter shine precious shiny' },
+  { char: '❤️', keywords: 'heart red love custom classic alignment romantic valentines' },
+  { char: '🧡', keywords: 'heart orange sweet warm companion' },
+  { char: '💛', keywords: 'heart yellow golden bright cheer happy' },
+  { char: '💚', keywords: 'heart green botanical fresh healthy life' },
+  { char: '💙', keywords: 'heart blue peace secure trust loyalty' },
+  { char: '💜', keywords: 'heart purple royal fantasy magical care' },
+  { char: '🖤', keywords: 'heart black gothic cool dark heavy' },
+  { char: '🤍', keywords: 'heart white purity cloud clean' },
+  { char: '🤎', keywords: 'heart brown organic coffee hot earth' },
+  { char: '💔', keywords: 'broken heart sadness break separation sadness trust' },
+  { char: '💤', keywords: 'zzz sleep tired snoring night resting snore copy' },
+  { char: '💭', keywords: 'thought bubble mind clouds thinking concept dream thought' },
+  { char: '💬', keywords: 'speech bubble talk details response dialogue messages text chat' },
+  { char: '📢', keywords: 'megaphone alert broad shout announcement speaker voice broadcast' },
+  { char: '🔔', keywords: 'bell alert rings acoustic system reminders clock chime chime' },
+  { char: '⚠️', keywords: 'warning safe danger yellow triangles border warning exclamation' },
+  { char: '💯', keywords: 'hundred percent rate perfect top results standard direct high score' }
+];
+
+const EMOJI_CATEGORIES = [
+  { id: 'smileys', label: 'Smileys', icon: '😊', list: ['😊', '😇', '😂', '😭', '😍', '😘', '🤪', '😎', '😡', '🥶', '🤮', '😷', '🙄', '🤔', '🤫', '🥱', '😴', '🥳', '🤯', '🥵', '🥺', '💩', '🤡', '👽', '🤖', '🎃', '💀'] },
+  { id: 'gestures', label: 'Gestures', icon: '👋', list: ['🙏', '👋', '👍', '👎', '👊', '✌️', '👌', '👏', '🙌', '🤝', '💪', '🧘', '🚶', '🏃'] },
+  { id: 'nature', label: 'Nature', icon: '🌸', list: ['🌸', '🌹', '🌺', '🌻', '🌼', '🌷', '🍃', '🍁', '🍀', '🌲', '🌴', '🌱', '🌿', '🌾', '🌊', '☀️', '🌙', '🪐', '⭐', '✨', '🌈', '🕊️', '🧸', '🐱', '🐶', '🦊', '🦁', '🐼', '🐨', '🦄'] },
+  { id: 'food', label: 'Food', icon: '🍎', list: ['🍵', '☕', '🍶', '🍷', '🥤', '🍎', '🍓', '🍒', '🍋', '🍍', '🍉', '🍇', '🥑', '🥦', '🌽', '🍕', '🍔', '🍟', '🍜', '🍰', '🧁', '🍩', '🍿', '🍪', '🍯'] },
+  { id: 'activities', label: 'Activities', icon: '⚽', list: ['🚴', '🥋', '⚽', '🏀', '🏈', '🎾', '🎮', '🎯', '🎲', '🎸', '🎹', '🎨', '🎭', '🎤', '🎧', '🏆', '🧭'] },
+  { id: 'travel', label: 'Travel', icon: '✈️', list: ['✈️', '🚗', '🚀', '🏙️', '🏕️'] },
+  { id: 'objects', label: 'Objects', icon: '💡', list: ['💡', '🔑', '🕯️', '💻', '📱', '⌚', '🔋', '✉️', '📦', '📝', '📚', '🎁', '🎈', '💵', '💎', '🩹', '🔮'] },
+  { id: 'symbols', label: 'Symbols', icon: '💖', list: ['💖', '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '💤', '💭', '💬', '📢', '🔔', '⚠️', '💯'] }
+];
+
 export const ChatView: React.FC<ChatViewProps> = ({
   conversation,
   onBack,
@@ -21,6 +194,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
 }) => {
   const [inputText, setInputText] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [activeEmojiCategory, setActiveEmojiCategory] = useState('smileys');
+  const [emojiSearchQuery, setEmojiSearchQuery] = useState('');
   const [showReflectionModal, setShowReflectionModal] = useState(false);
   const [showAddOptions, setShowAddOptions] = useState(false);
   const [showGifPicker, setShowGifPicker] = useState(false);
@@ -107,6 +282,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
   const photoInputRef = useRef<HTMLInputElement>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
   const wallpaperInputRef = useRef<HTMLInputElement>(null);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -142,6 +318,21 @@ export const ChatView: React.FC<ChatViewProps> = ({
       };
     }
   }, [localMessages]);
+
+  // Close emoji picker on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+    if (showEmojiPicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showEmojiPicker]);
 
   // Clean up player on unmount
   useEffect(() => {
@@ -754,6 +945,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
     onSendMessage(messageText);
     setInputText('');
+    setShowEmojiPicker(false);
   };
 
   useEffect(() => {
@@ -1808,7 +2000,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
       )}
 
       {/* Message Input Bar Area */}
-      <div className="py-4 bg-gradient-to-t from-surface via-surface to-transparent pt-6 border-t border-outline-variant/10 p-4">
+      <div className="py-4 bg-gradient-to-t from-surface via-surface to-transparent pt-6 border-t border-outline-variant/10 p-4 relative z-30">
         {isRecording ? (
           /* High-Fidelity Voice Note Recording Slider Panel */
           <div className="flex items-center gap-3 bg-primary/10 backdrop-blur-lg p-2 px-4 rounded-full border border-primary/25 shadow-[0_8px_30px_rgb(0,0,0,0.02)] relative animate-fade-in w-full">
@@ -1961,7 +2153,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
               id="chat-text-input"
             />
             
-            <div className="relative flex items-center shrink-0">
+            <div ref={emojiPickerRef} className="relative flex items-center shrink-0">
               <button
                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                 className={`p-2 rounded-full transition-all duration-300 hover:bg-surface-container-high text-pink-500 hover:scale-110 active:scale-95 ${
@@ -1976,32 +2168,134 @@ export const ChatView: React.FC<ChatViewProps> = ({
               
               {showEmojiPicker && (
                 <div 
-                  className="absolute bottom-12 right-0 bg-surface-container-low rounded-2xl p-3 border border-outline-variant/30 shadow-2xl z-50 w-64 animate-fade-in"
+                  className="absolute bottom-12 right-0 bg-surface-container-low rounded-2xl p-3.5 border border-outline-variant/30 shadow-2xl z-50 w-76 flex flex-col gap-2 animate-fade-in"
                   id="chat-emoji-picker-popover"
+                  style={{ width: '310px' }}
                 >
-                  <div className="flex justify-between items-center mb-2 pb-1 border-b border-outline-variant/15">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-outline">Select Emoji</span>
+                  {/* Category Selection Tabs (Similar to WhatsApp/MS Teams) */}
+                  <div className="flex items-center justify-between gap-1 border-b border-outline-variant/15 pb-2">
+                    <div className="flex gap-1 overflow-x-auto py-0.5 pr-2 scrollbar-none">
+                      {EMOJI_CATEGORIES.map(category => (
+                        <button
+                          key={category.id}
+                          onClick={() => {
+                            setActiveEmojiCategory(category.id);
+                            setEmojiSearchQuery(''); // clear search on category swap
+                          }}
+                          className={`w-7.5 h-7.5 text-base flex items-center justify-center rounded-lg transition-all ${
+                            activeEmojiCategory === category.id && !emojiSearchQuery
+                              ? 'bg-pink-500/15 scale-105 border border-pink-500/30'
+                              : 'hover:bg-surface-container-high'
+                          }`}
+                          title={category.label}
+                          type="button"
+                        >
+                          {category.icon}
+                        </button>
+                      ))}
+                    </div>
                     <button 
                       onClick={() => setShowEmojiPicker(false)}
-                      className="text-[10px] text-pink-500 font-bold hover:underline"
+                      className="text-[10px] text-pink-500 font-bold uppercase tracking-wider hover:underline hover:opacity-80 transition-all ml-auto pl-2"
+                      type="button"
                     >
                       Close
                     </button>
                   </div>
-                  <div className="grid grid-cols-6 gap-2">
-                    {['😊', '😇', '🙏', '🧘', '🌸', '✨', '💖', '🍃', '🌊', '🍵', '☀️', '🌱', '🕊️', '💤', '💭', '🙌', '🎉', '🔥', '💪', '❤️', '💯', '🌈', '🔮', '🧸'].map(emoji => (
+
+                  {/* Search Bar (Similar to Teams / WhatsApp lookup) */}
+                  <div className="relative flex items-center bg-surface-container-high rounded-xl px-2.5 py-1.5 border border-outline-variant/15 font-body">
+                    <Search className="w-3.5 h-3.5 text-outline shrink-0 mr-1.5" />
+                    <input
+                      type="text"
+                      className="w-full bg-transparent border-none text-xs text-on-surface placeholder:text-outline-variant outline-none focus:ring-0 p-0"
+                      placeholder="Search emojis (e.g. love, calm, coffee)..."
+                      value={emojiSearchQuery}
+                      onChange={(e) => setEmojiSearchQuery(e.target.value)}
+                    />
+                    {emojiSearchQuery && (
                       <button
-                        key={emoji}
-                        onClick={() => {
-                          setInputText(prev => prev + emoji);
-                          setShowEmojiPicker(false);
-                          document.getElementById('chat-text-input')?.focus();
-                        }}
-                        className="text-lg p-1.5 rounded-lg hover:bg-pink-500/10 active:scale-90 transition-all text-center"
+                        onClick={() => setEmojiSearchQuery('')}
+                        className="text-[10px] text-outline hover:text-pink-500 font-bold"
+                        type="button"
                       >
-                        {emoji}
+                        Clear
                       </button>
-                    ))}
+                    )}
+                  </div>
+
+                  {/* Scrollable Grid of Emojis */}
+                  <div className="h-48 overflow-y-auto pr-1 select-none scrollbar-thin scrollbar-thumb-outline-variant" style={{ minHeight: '190px' }}>
+                    {emojiSearchQuery.trim() ? (
+                      (() => {
+                        const query = emojiSearchQuery.toLowerCase().trim();
+                        const filtered = ALL_EMOJIS.filter(e => 
+                          e.keywords.includes(query) || e.char.includes(query)
+                        );
+                        
+                        if (filtered.length === 0) {
+                          return (
+                            <div className="flex flex-col items-center justify-center h-full py-8 text-center">
+                              <span className="text-xl mb-1">💤</span>
+                              <span className="text-[10px] text-outline font-body">No matching emojis</span>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div className="grid grid-cols-7 gap-1.5">
+                            {filtered.map(item => (
+                              <button
+                                key={item.char}
+                                onClick={() => {
+                                  setInputText(prev => prev + item.char);
+                                  document.getElementById('chat-text-input')?.focus();
+                                }}
+                                className="text-xl p-1 rounded-lg hover:bg-pink-500/10 active:scale-75 transition-all duration-150 text-center"
+                                title={item.keywords}
+                                type="button"
+                              >
+                                {item.char}
+                              </button>
+                            ))}
+                          </div>
+                        );
+                      })()
+                    ) : (
+                      <div>
+                        {/* Selected Active Category */}
+                        {(() => {
+                          const activeCatObj = EMOJI_CATEGORIES.find(c => c.id === activeEmojiCategory);
+                          if (!activeCatObj) return null;
+                          return (
+                            <div className="flex flex-col gap-1.5">
+                              <span className="text-[10px] font-bold uppercase tracking-widest text-outline mb-1 font-body">
+                                {activeCatObj.label}
+                              </span>
+                              <div className="grid grid-cols-7 gap-1.5">
+                                {activeCatObj.list.map(emojiChar => {
+                                  const details = ALL_EMOJIS.find(item => item.char === emojiChar);
+                                  return (
+                                    <button
+                                      key={emojiChar}
+                                      onClick={() => {
+                                        setInputText(prev => prev + emojiChar);
+                                        document.getElementById('chat-text-input')?.focus();
+                                      }}
+                                      className="text-xl p-1 rounded-lg hover:bg-pink-500/10 active:scale-75 transition-all duration-150 text-center"
+                                      title={details?.keywords || ''}
+                                      type="button"
+                                    >
+                                      {emojiChar}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
