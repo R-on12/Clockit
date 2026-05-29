@@ -284,7 +284,9 @@ export default function App() {
             timeLabel: data.timeLabel || 'Recent',
             likes: data.likes || 0,
             hasLiked: false,
-            comments: data.comments || []
+            comments: data.comments || [],
+            mediaUrl: data.mediaUrl || null,
+            mediaType: data.mediaType || null
           });
         });
 
@@ -504,7 +506,7 @@ export default function App() {
   };
 
   // Circle / Community Posts Actions
-  const handleAddPost = async (circleId: string, content: string) => {
+  const handleAddPost = async (circleId: string, content: string, mediaUrl?: string, mediaType?: 'image' | 'video' | 'none') => {
     const postId = `post_${Date.now()}`;
     const newPost = {
       id: postId,
@@ -515,7 +517,9 @@ export default function App() {
       content,
       timeLabel: 'Just Now',
       likes: 0,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      ...(mediaUrl ? { mediaUrl } : {}),
+      ...(mediaType ? { mediaType } : {})
     };
 
     const postDocRef = doc(db, 'circles', circleId, 'posts', postId);
@@ -850,12 +854,19 @@ export default function App() {
           {/* Circles/Community Forums tab */}
           <button
             onClick={() => setCurrentTab('circles')}
-            className={`flex flex-col items-center p-3 transition-colors duration-300 outline-none ${
-              currentTab === 'circles' ? 'text-primary' : 'text-outline hover:text-primary'
+            className={`flex flex-col items-center p-3 transition-all duration-300 outline-none relative group ${
+              currentTab === 'circles' 
+                ? 'text-pink-500 font-bold drop-shadow-[0_0_8px_rgba(246,117,169,0.3)]' 
+                : 'text-outline hover:text-pink-400'
             }`}
           >
-            <Users2 className={`w-5 h-5 ${currentTab === 'circles' ? 'stroke-[2.5px]' : 'stroke-[1.5px]'}`} />
-            <span className="text-[10px] mt-1 font-label leading-none font-bold">Circles</span>
+            <Users2 className={`w-5 h-5 transition-transform duration-300 group-hover:scale-110 ${
+              currentTab === 'circles' ? 'stroke-[2.5px] scale-105 text-pink-500' : 'stroke-[1.5px]'
+            }`} />
+            <span className="text-[10px] mt-1 font-label leading-none font-bold uppercase tracking-wider">Circles</span>
+            {currentTab === 'circles' && (
+              <span className="absolute bottom-1 w-1.5 h-1.5 bg-pink-500 rounded-full shadow-[0_0_6px_#ec4899]"></span>
+            )}
           </button>
 
           {/* Global System Settings tab */}

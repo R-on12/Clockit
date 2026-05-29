@@ -63,6 +63,8 @@ export interface CommunityPost {
   likes: number;
   hasLiked?: boolean;
   comments: Comment[];
+  mediaUrl?: string;
+  mediaType?: 'image' | 'video' | 'none';
 }
 
 export interface Comment {
