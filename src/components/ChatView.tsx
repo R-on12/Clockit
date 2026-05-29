@@ -20,6 +20,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
   userName = 'Ronnie'
 }) => {
   const [inputText, setInputText] = useState('');
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showReflectionModal, setShowReflectionModal] = useState(false);
   const [showAddOptions, setShowAddOptions] = useState(false);
   const [showGifPicker, setShowGifPicker] = useState(false);
@@ -1959,6 +1960,53 @@ export const ChatView: React.FC<ChatViewProps> = ({
               placeholder="Share your thoughts..."
               id="chat-text-input"
             />
+            
+            <div className="relative flex items-center shrink-0">
+              <button
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                className={`p-2 rounded-full transition-all duration-300 hover:bg-surface-container-high text-pink-500 hover:scale-110 active:scale-95 ${
+                  showEmojiPicker ? 'bg-surface-container-high scale-105' : ''
+                }`}
+                title="Add emoji"
+                type="button"
+                id="chat-emoji-button"
+              >
+                <Smile className="w-5 h-5 text-pink-500 fill-pink-500/10" />
+              </button>
+              
+              {showEmojiPicker && (
+                <div 
+                  className="absolute bottom-12 right-0 bg-surface-container-low rounded-2xl p-3 border border-outline-variant/30 shadow-2xl z-50 w-64 animate-fade-in"
+                  id="chat-emoji-picker-popover"
+                >
+                  <div className="flex justify-between items-center mb-2 pb-1 border-b border-outline-variant/15">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-outline">Select Emoji</span>
+                    <button 
+                      onClick={() => setShowEmojiPicker(false)}
+                      className="text-[10px] text-pink-500 font-bold hover:underline"
+                    >
+                      Close
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-6 gap-2">
+                    {['😊', '😇', '🙏', '🧘', '🌸', '✨', '💖', '🍃', '🌊', '🍵', '☀️', '🌱', '🕊️', '💤', '💭', '🙌', '🎉', '🔥', '💪', '❤️', '💯', '🌈', '🔮', '🧸'].map(emoji => (
+                      <button
+                        key={emoji}
+                        onClick={() => {
+                          setInputText(prev => prev + emoji);
+                          setShowEmojiPicker(false);
+                          document.getElementById('chat-text-input')?.focus();
+                        }}
+                        className="text-lg p-1.5 rounded-lg hover:bg-pink-500/10 active:scale-90 transition-all text-center"
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
             {inputText.trim() ? (
               <button 
                 onClick={handleSend}
