@@ -49,11 +49,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     <div className="space-y-10 py-6 animate-fade-in" id="dashboard-view">
       {/* Hero Welcome */}
       <section className="mb-8">
-        <h1 className="text-5xl font-headline font-light text-primary tracking-tight leading-tight">
-          {getGreeting()},<br />{userSettings.name}
+        <h1 className="text-4xl md:text-5xl font-headline font-bold text-on-surface tracking-tight leading-tight">
+          {getGreeting()}, <br />
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-pink-500 to-amber-500 font-extrabold">
+            {userSettings.name || 'Seeker'}
+          </span>
         </h1>
         <p className="mt-4 text-on-surface-variant font-body tracking-wide">
-          Your community is waiting for you.
+          Your active communication circles and connections are waiting.
         </p>
       </section>
 
