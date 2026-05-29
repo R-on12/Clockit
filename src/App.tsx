@@ -655,6 +655,41 @@ export default function App() {
     setCurrentTab('active_guide_chat');
   };
 
+  const handleStartDirectChat = (id: string, name: string, avatar: string) => {
+    const existing = conversations.find(c => c.id === id || c.name === name);
+    if (existing) {
+      setActiveConversationId(existing.id);
+      setCurrentTab('active_guide_chat');
+    } else {
+      const customId = id || `member_${Date.now()}`;
+      const newConv: Conversation = {
+        id: customId,
+        name,
+        avatar: avatar || '',
+        isGroup: false,
+        lastMessage: 'A new silent channel formed.',
+        unreadCount: 0,
+        timeLabel: 'JUST NOW',
+        online: true,
+        messages: [
+          {
+            id: `con_${Date.now()}`,
+            senderId: customId,
+            senderName: name,
+            senderAvatar: avatar || '',
+            text: `Welcome! Let us co-create beautiful alignment here.`,
+            timestamp: 'Today, Just Now',
+            timeLabel: 'JUST NOW',
+            isUser: false
+          }
+        ]
+      };
+      setConversations(prev => [newConv, ...prev]);
+      setActiveConversationId(customId);
+      setCurrentTab('active_guide_chat');
+    }
+  };
+
   // Helper title strings
   const activeConversation = conversations.find(c => c.id === activeConversationId) || conversations[0];
 
@@ -746,6 +781,7 @@ export default function App() {
             onLikePost={handleLikePost}
             onAddComment={handleAddComment}
             userAvatar={userSettings.avatar}
+            onStartDirectChat={handleStartDirectChat}
           />
         )}
 
