@@ -453,7 +453,29 @@ export const ChatView: React.FC<ChatViewProps> = ({
     reader.onload = (event) => {
       const url = event.target?.result as string;
       if (url) {
-        onSendMessage(`📷 Sent photo: ${file.name}`, {
+        const textVal = `📷 Sent photo: ${file.name}`;
+        const msgId = `msg_${Date.now()}`;
+        const photoMessage: Message = {
+          id: msgId,
+          senderId: 'user',
+          senderName: userName,
+          senderAvatar: userAvatar,
+          text: textVal,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          timeLabel: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          isUser: true,
+          isItalic: false,
+          attachment: {
+            type: 'photo',
+            url,
+            name: file.name,
+            size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+          }
+        };
+
+        setLocalMessages(prev => [...prev, photoMessage]);
+
+        onSendMessage(textVal, {
           type: 'photo',
           url,
           name: file.name,
@@ -470,7 +492,29 @@ export const ChatView: React.FC<ChatViewProps> = ({
     if (!file) return;
 
     const url = URL.createObjectURL(file);
-    onSendMessage(`📄 Attached document: ${file.name}`, {
+    const textVal = `📄 Attached document: ${file.name}`;
+    const msgId = `msg_${Date.now()}`;
+    const docMessage: Message = {
+      id: msgId,
+      senderId: 'user',
+      senderName: userName,
+      senderAvatar: userAvatar,
+      text: textVal,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      timeLabel: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isUser: true,
+      isItalic: false,
+      attachment: {
+        type: 'document',
+        url,
+        name: file.name,
+        size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+      }
+    };
+
+    setLocalMessages(prev => [...prev, docMessage]);
+
+    onSendMessage(textVal, {
       type: 'document',
       url,
       name: file.name,
@@ -629,6 +673,27 @@ export const ChatView: React.FC<ChatViewProps> = ({
       const formattedDuration = `${mins}:${secs}`;
       const textVal = `🎤 Voice Message (${formattedDuration})`;
       
+      const msgId = `msg_${Date.now()}`;
+      const voiceMessage: Message = {
+        id: msgId,
+        senderId: 'user',
+        senderName: userName,
+        senderAvatar: userAvatar,
+        text: textVal,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        timeLabel: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        isUser: true,
+        isItalic: false,
+        attachment: {
+          type: 'document',
+          url: url || `simulated_voice_auras_${Date.now()}`,
+          name: `VoiceNote_${Date.now()}.wav`,
+          size: `${(recordingSeconds * 12.4).toFixed(1)} KB`
+        }
+      };
+
+      setLocalMessages(prev => [...prev, voiceMessage]);
+
       onSendMessage(textVal, {
         type: 'document',
         url: url || `simulated_voice_auras_${Date.now()}`,
@@ -639,8 +704,6 @@ export const ChatView: React.FC<ChatViewProps> = ({
       setIsRecording(false);
       setRecordingSeconds(0);
       setRecordingBlobUrl(null);
-      
-      simulateOtherSideTypingAndReplying();
     };
 
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
@@ -673,10 +736,23 @@ export const ChatView: React.FC<ChatViewProps> = ({
       setReplyToMsg(null);
     }
     
+    const msgId = `msg_${Date.now()}`;
+    const userMessage: Message = {
+      id: msgId,
+      senderId: 'user',
+      senderName: userName,
+      senderAvatar: userAvatar,
+      text: messageText,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      timeLabel: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isUser: true,
+      isItalic: false
+    };
+
+    setLocalMessages(prev => [...prev, userMessage]);
+
     onSendMessage(messageText);
     setInputText('');
-    
-    simulateOtherSideTypingAndReplying();
   };
 
   useEffect(() => {

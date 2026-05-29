@@ -401,52 +401,27 @@ export default function App() {
       createdAt: new Date().toISOString()
     };
 
+    // Update the local state instantly to ensure immediate UI feedback
+    setConversations(prev => prev.map(c => {
+      if (c.id === activeConversationId) {
+        const alreadyExists = c.messages.some(m => m.id === msgId);
+        const updatedMsgs = alreadyExists ? c.messages : [...c.messages, newMessage];
+        return {
+          ...c,
+          messages: updatedMsgs,
+          lastMessage: text,
+          timeLabel: 'Active'
+        };
+      }
+      return c;
+    }));
+
     if (currentUserUid) {
       const msgDocRef = doc(db, 'users', currentUserUid, 'conversations', activeConversationId, 'messages', msgId);
       await setDoc(msgDocRef, newMessage).catch(err => {
         handleFirestoreError(err, OperationType.CREATE, `users/${currentUserUid}/conversations/${activeConversationId}/messages/${msgId}`);
       });
     }
-
-    // Trigger AI Simulated response
-    setTimeout(async () => {
-      const lowerText = text.toLowerCase();
-      let replyText = `I hear you, ${userSettings.name}. In this digital sanctuary, every thought has room to rest. Let's take a peaceful moment to align our breath.`;
-
-      if (lowerText.includes('stress') || lowerText.includes('anxious') || lowerText.includes('worry')) {
-        replyText = `Take a slow, deep breath and feel your shoulders drop. Let's commit to a 4-7-8 breathing pause together. Would you like me to count the pacing for you?`;
-      } else if (lowerText.includes('sleep') || lowerText.includes('tired') || lowerText.includes('exhausted')) {
-        replyText = `Sleep is the quiet tide that carries our vitality. Try stepping into silent pasture 30 minutes before bed. I've logged your sleep duration at ${vitalState.sleep.current}h today. Let's keep it steady.`;
-      } else if (lowerText.includes('meditate') || lowerText.includes('mindful') || lowerText.includes('zen')) {
-        replyText = `Excellent centering, ${userSettings.name}. A single conscious inhale is a meditation in itself. Remember to let passing thoughts glide by like soft forest clouds.`;
-      } else if (lowerText.includes('community') || lowerText.includes('yoga') || lowerText.includes('circles')) {
-        replyText = `Sharing silent spaces multiplies their restorative harmony. Have you shared your journaling pause in our Clock Seekers circle today? This brings key resonance!`;
-      } else if (lowerText.includes('water') || lowerText.includes('hydrate') || lowerText.includes('drink')) {
-        replyText = `A pristine stream keeps the heart buoyant. Hydrating steadily at intervals clears neurological strain. You are currently at ${vitalState.water.current}L today! Keep a goblet near.`;
-      }
-
-      const replyId = `reply_${Date.now()}`;
-      const companionReply = {
-        id: replyId,
-        conversationId: activeConversationId,
-        senderId: activeConversationId,
-        senderName: activeConversation?.name || 'Wellness Guide',
-        senderAvatar: activeConversation?.avatar || 'https://lh3.googleusercontent.com/aida-public/AB6AXuCE54NSPHbX_rB2bvgKiljuvd5-JlEpnq-PUTJroJhuoDHf8xcICcz1SdKGAXQTPgd9Lnf_1RQ2gK2uGfCED5UyyvSaHTvRE5Tz7QlNVB2bwiWB7kMRx-wa1malx4rt3pw8wlFV29vnBaAjSHXeef8ImZjwK3zi6McOGsVOQfVV6TcJlBsCQeAZcMtfwmzbjPQi8z6lxFlk80nkQMGfINcD8OkpUc_O9sqIAmBZPmOFzanAnArGrcRF8NtpqJneZWDZJSb8xU980Xue',
-        text: replyText,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        timeLabel: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        isUser: false,
-        isItalic: false,
-        createdAt: new Date().toISOString()
-      };
-
-      if (currentUserUid) {
-        const replyDocRef = doc(db, 'users', currentUserUid, 'conversations', activeConversationId, 'messages', replyId);
-        await setDoc(replyDocRef, companionReply).catch(err => {
-          handleFirestoreError(err, OperationType.CREATE, `users/${currentUserUid}/conversations/${activeConversationId}/messages/${replyId}`);
-        });
-      }
-    }, 1500);
   };
 
   // Add a new reflection response
