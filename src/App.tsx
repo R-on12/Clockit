@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, MessageSquare, Users2, Settings, TrendingUp, Sparkles, UserCheck, Search } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, Users2, Settings, TrendingUp, Sparkles, UserCheck, Search, Shield } from 'lucide-react';
 import logoUrl from './assets/images/hand_logo_outline_1779806157572.png';
 import {
   initialConversations,
@@ -17,6 +17,7 @@ import { CirclesView } from './components/CirclesView';
 import { SettingsView } from './components/SettingsView';
 import { InsightsView } from './components/InsightsView';
 import { AuthView } from './components/AuthView';
+import { AdminView } from './components/AdminView';
 
 // Firebase Client SDK Integration imports
 import { onAuthStateChanged } from 'firebase/auth';
@@ -751,17 +752,31 @@ export default function App() {
             </button>
             <span className="text-xl font-headline tracking-tight text-primary font-bold">Clockit</span>
           </div>
-          <div 
-            onClick={() => setCurrentTab('settings')}
-            className="w-10 h-10 rounded-full overflow-hidden bg-surface-container-highest border border-outline-variant cursor-pointer group hover:scale-105 transition-all shadow-sm"
-            id="header-user-profile-circle"
-          >
-            <img 
-              alt={`${userSettings.name} profile`} 
-              className="w-full h-full object-cover transition-all duration-500 ease-out group-hover:scale-110" 
-              src={userSettings.avatar || "https://lh3.googleusercontent.com/aida-public/AB6AXuDoyaWl51725uwC6lMhOaK-1M9NPiGyMaUVkwLk2kEwMW2qwOzZw69c0PhlQIRB159p-2KQUuJPx2wagma4TziOrBe_sSIN8HuKKMZONsgDfZEQrlDLFO6-_mj205uXzIoo4UaPA6aJjYJQtt-7_L6xAxvAWWq791mVYhQZPEFw3xMoHlIfod_Jh8136RnAAc90bO97692QHKkgZYGJTRQ6qeI6G64FVaHQucqsoe-3o8a8okxigAJ9Wstm2AdaQl8xNWNAW-8Yf7Rg"}
-              referrerPolicy="no-referrer"
-            />
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setCurrentTab('admin')}
+              className={`w-10 h-10 flex items-center justify-center rounded-full border transition-all ${
+                currentTab === 'admin' 
+                  ? 'bg-primary border-primary text-on-primary shadow-md' 
+                  : 'bg-surface-container/25 border-outline-variant/30 text-primary hover:bg-primary/10 hover:border-primary/50'
+              }`}
+              title="Admin Control Center"
+              id="header-admin-portal-launcher"
+            >
+              <Shield className="w-5 h-5 fill-current/10" />
+            </button>
+            <div 
+              onClick={() => setCurrentTab('settings')}
+              className="w-10 h-10 rounded-full overflow-hidden bg-surface-container-highest border border-outline-variant cursor-pointer group hover:scale-105 transition-all shadow-sm"
+              id="header-user-profile-circle"
+            >
+              <img 
+                alt={`${userSettings.name} profile`} 
+                className="w-full h-full object-cover transition-all duration-500 ease-out group-hover:scale-110" 
+                src={userSettings.avatar || "https://lh3.googleusercontent.com/aida-public/AB6AXuDoyaWl51725uwC6lMhOaK-1M9NPiGyMaUVkwLk2kEwMW2qwOzZw69c0PhlQIRB159p-2KQUuJPx2wagma4TziOrBe_sSIN8HuKKMZONsgDfZEQrlDLFO6-_mj205uXzIoo4UaPA6aJjYJQtt-7_L6xAxvAWWq791mVYhQZPEFw3xMoHlIfod_Jh8136RnAAc90bO97692QHKkgZYGJTRQ6qeI6G64FVaHQucqsoe-3o8a8okxigAJ9Wstm2AdaQl8xNWNAW-8Yf7Rg"}
+                referrerPolicy="no-referrer"
+              />
+            </div>
           </div>
         </header>
       )}
@@ -811,6 +826,10 @@ export default function App() {
             onUpdateSettings={handleUpdateUserSettings}
             onSignOut={handleSignOut}
           />
+        )}
+
+        {currentTab === 'admin' && (
+          <AdminView />
         )}
 
         {currentTab === 'active_guide_chat' && (

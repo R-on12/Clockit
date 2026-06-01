@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { User, Lock, Bell, Palette, HelpCircle, LogOut, ChevronRight, Edit2, CheckCircle } from 'lucide-react';
 import { UserSettings } from '../types';
+import { db } from '../firebase';
+import { collection, addDoc } from 'firebase/firestore';
 
 interface SettingsViewProps {
   userSettings: UserSettings;
@@ -466,8 +468,21 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
                     <div className="flex justify-end pt-2 border-t border-outline-variant/10">
                       <button
-                        onClick={() => {
+                        onClick={async () => {
                           if (!supportText.trim()) return;
+                          try {
+                            await addDoc(collection(db, 'reviews'), {
+                              userName: userSettings.name || 'Anonymous Usr',
+                              userEmail: userSettings.email || 'anonymous@clockit.com',
+                              userAvatar: userSettings.avatar || '',
+                              category: supportCategory,
+                              text: supportText,
+                              createdAt: new Date().toISOString(),
+                              status: 'pending'
+                            });
+                          } catch (err) {
+                            console.error('Failed to save review to firestore:', err);
+                          }
                           setTicketSuccess(true);
                         }}
                         disabled={!supportText.trim()}
