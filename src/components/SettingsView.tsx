@@ -205,23 +205,31 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
             <div>
               <label className="text-xs text-outline font-label block mb-2">Preset Zen Avatar</label>
-              <div className="flex gap-3 overflow-x-auto py-1">
+              <div className="flex gap-3 overflow-x-auto py-2 scrollbar-thin scrollbar-thumb-outline-variant/30 scrollbar-track-transparent">
                 {[
                   { name: 'Classic Portrait', url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDoyaWl51725uwC6lMhOaK-1M9NPiGyMaUVkwLk2kEwMW2qwOzZw69c0PhlQIRB159p-2KQUuJPx2wagma4TziOrBe_sSIN8HuKKMZONsgDfZEQrlDLFO6-_mj205uXzIoo4UaPA6aJjYJQtt-7_L6xAxvAWWq791mVYhQZPEFw3xMoHlIfod_Jh8136RnAAc90bO97692QHKkgZYGJTRQ6qeI6G64FVaHQucqsoe-3o8a8okxigAJ9Wstm2AdaQl8xNWNAW-8Yf7Rg' },
                   { name: 'Lotus Spirit', url: 'https://images.unsplash.com/photo-1518241353330-0f7941c2d9b5?auto=format&fit=crop&q=80&w=150' },
                   { name: 'Forest Path', url: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&q=80&w=150' },
-                  { name: 'Ocean Wave', url: 'https://images.unsplash.com/photo-1505118380757-91f5f5632de0?auto=format&fit=crop&q=80&w=150' }
+                  { name: 'Ocean Wave', url: 'https://images.unsplash.com/photo-1505118380757-91f5f5632de0?auto=format&fit=crop&q=80&w=150' },
+                  { name: 'Mountain Peak', url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=150' },
+                  { name: 'Cosmic Nebula', url: 'https://images.unsplash.com/photo-1506318137071-a8e063b4bec0?auto=format&fit=crop&q=80&w=150' },
+                  { name: 'Zen Pebble', url: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&q=80&w=150' },
+                  { name: 'Misty Meadow', url: 'https://images.unsplash.com/photo-1475113548554-5a36f1f523d6?auto=format&fit=crop&q=80&w=150' },
+                  { name: 'Glowing Dunes', url: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&q=80&w=150' },
+                  { name: 'Northern Lights', url: 'https://images.unsplash.com/photo-1483347756197-71ef80e95f73?auto=format&fit=crop&q=80&w=150' },
+                  { name: 'Warm Sun', url: 'https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?auto=format&fit=crop&q=80&w=150' }
                 ].map((av) => (
                   <button
                     key={av.url}
+                    type="button"
                     onClick={() => {
                       setTempAvatar(av.url);
                       onUpdateSettings({ avatar: av.url });
                     }}
-                    className={`relative shrink-0 w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 transition-all ${tempAvatar === av.url ? 'border-primary scale-110 shadow-sm' : 'border-transparent hover:border-outline-variant/50'}`}
+                    className={`relative shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 transition-all duration-300 hover:scale-105 ${tempAvatar === av.url ? 'border-primary scale-110 shadow-lg ring-2 ring-primary/40' : 'border-outline-variant/35 hover:border-primary/50'}`}
                     title={av.name}
                   >
-                    <img src={av.url} className="w-full h-full object-cover" alt={av.name} referrerPolicy="no-referrer" />
+                    <img src={av.url} className="w-full h-full object-cover select-none" alt={av.name} referrerPolicy="no-referrer" />
                   </button>
                 ))}
               </div>
