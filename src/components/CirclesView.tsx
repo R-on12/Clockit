@@ -103,6 +103,9 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
   // Comments input mapped by post id
   const [commentInputs, setCommentInputs] = useState<{ [postId: string]: string }>({});
   
+  // Track which posts have their comment panel open
+  const [expandedComments, setExpandedComments] = useState<{ [postId: string]: boolean }>({});
+  
   // Bookmarked posts list
   const [bookmarkedPostIds, setBookmarkedPostIds] = useState<string[]>(['p2']);
   
@@ -289,6 +292,13 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
     if (!text || !text.trim()) return;
     onAddComment(activeCircleId, postId, text);
     setCommentInputs(prev => ({ ...prev, [postId]: '' }));
+  };
+
+  const toggleComments = (postId: string) => {
+    setExpandedComments(prev => ({
+      ...prev,
+      [postId]: !prev[postId]
+    }));
   };
 
   const toggleBookmark = (postId: string) => {
@@ -779,7 +789,12 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
 
                           {/* Comment trigger badge */}
                           <div className="flex items-center gap-1">
-                            <button className="flex items-center justify-center p-2 rounded-full hover:bg-blue-500/10 hover:text-blue-400 transition-colors">
+                            <button 
+                              onClick={() => toggleComments(post.id)}
+                              className={`flex items-center justify-center p-2 rounded-full transition-all duration-300 hover:bg-blue-500/10 hover:text-blue-400 ${
+                                expandedComments[post.id] ? 'text-blue-400 bg-blue-500/5' : ''
+                              }`}
+                            >
                               <MessageSquare className="w-4 h-4" />
                               <span className="text-xs ml-1.5 font-medium tabular-nums">{post.comments.length}</span>
                             </button>
@@ -810,40 +825,43 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
                           </div>
                         </div>
 
-                        {/* Rendering Comment threads inside layout */}
-                        {post.comments.length > 0 && (
-                          <div className="bg-surface-container-lowest/70 rounded-2xl p-4 mt-4 space-y-3 border border-outline-variant/10 text-xs text-on-surface-variant font-body">
-                            {post.comments.map(comment => (
-                              <div key={comment.id} className="space-y-1">
-                                <div className="flex justify-between items-baseline">
-                                  <span className="font-bold text-pink-500">{comment.authorName}</span>
-                                  <span className="text-[9px] text-outline uppercase tracking-wider">{comment.timeLabel}</span>
+                        {/* Expandable Comment/Reply Panel Container */}
+                        <div className={expandedComments[post.id] ? "block" : "hidden"}>
+                          {/* Rendering Comment threads inside layout */}
+                          {post.comments.length > 0 && (
+                            <div className="bg-surface-container-lowest/70 rounded-2xl p-4 mt-4 space-y-3 border border-outline-variant/10 text-xs text-on-surface-variant font-body">
+                              {post.comments.map(comment => (
+                                <div key={comment.id} className="space-y-1">
+                                  <div className="flex justify-between items-baseline">
+                                    <span className="font-bold text-pink-500">{comment.authorName}</span>
+                                    <span className="text-[9px] text-outline uppercase tracking-wider">{comment.timeLabel}</span>
+                                  </div>
+                                  <p className="text-on-surface-variant">{comment.content}</p>
                                 </div>
-                                <p className="text-on-surface-variant">{comment.content}</p>
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                              ))}
+                            </div>
+                          )}
 
-                        {/* Expandable replies input box */}
-                        <div className="flex gap-2 items-center bg-surface-container-lowest rounded-2xl p-1.5 mt-4 border border-outline-variant/5">
-                          <input
-                            type="text"
-                            value={commentInputs[post.id] || ''}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setCommentInputs(prev => ({ ...prev, [post.id]: val }));
-                            }}
-                            onKeyDown={(e) => e.key === 'Enter' && handleCommentSubmit(post.id)}
-                            placeholder="Add a thoughtful wellness reply..."
-                            className="flex-grow bg-transparent border-none text-xs text-on-surface placeholder:text-outline/40 outline-none px-3 focus:ring-0"
-                          />
-                          <button
-                            onClick={() => handleCommentSubmit(post.id)}
-                            className="py-1 px-4 bg-pink-500 hover:bg-pink-600 text-white rounded-xl text-[10px] font-bold font-label uppercase tracking-widest transition-all"
-                          >
-                            Reply
-                          </button>
+                          {/* Expandable replies input box */}
+                          <div className="flex gap-2 items-center bg-surface-container-lowest rounded-2xl p-1.5 mt-4 border border-outline-variant/5">
+                            <input
+                              type="text"
+                              value={commentInputs[post.id] || ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setCommentInputs(prev => ({ ...prev, [post.id]: val }));
+                              }}
+                              onKeyDown={(e) => e.key === 'Enter' && handleCommentSubmit(post.id)}
+                              placeholder="Add a thoughtful wellness reply..."
+                              className="flex-grow bg-transparent border-none text-xs text-on-surface placeholder:text-outline/40 outline-none px-3 focus:ring-0"
+                            />
+                            <button
+                              onClick={() => handleCommentSubmit(post.id)}
+                              className="py-1 px-4 bg-pink-500 hover:bg-pink-600 text-white rounded-xl text-[10px] font-bold font-label uppercase tracking-widest transition-all"
+                            >
+                              Reply
+                            </button>
+                          </div>
                         </div>
                       </motion.div>
                     );
