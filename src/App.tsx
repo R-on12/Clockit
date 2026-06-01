@@ -720,6 +720,9 @@ export default function App() {
     if (userSettings.themeMode === 'ocean') return 'theme-ocean';
     if (userSettings.themeMode === 'forest') return 'theme-forest';
     if (userSettings.themeMode === 'cosmic') return 'theme-cosmic';
+    if (userSettings.themeMode === 'cyberlime') return 'theme-cyberlime';
+    if (userSettings.themeMode === 'sunset') return 'theme-sunset';
+    if (userSettings.themeMode === 'aurora') return 'theme-aurora';
     return '';
   };
 

@@ -264,3 +264,93 @@ h1, h2, h3, h4 {
   background: rgba(17, 14, 26, 0.75) !important;
   border: 1px solid rgba(255, 255, 255, 0.05) !important;
 }
+
+/* Modern Hyper-Bright Cyber Lime Theme */
+.theme-cyberlime {
+  --color-background: #080a0d;
+  --color-surface-container: #121820;
+  --color-surface-container-low: #0c1015;
+  --color-surface-container-lowest: #05070a;
+  --color-surface-container-high: #1a222e;
+  --color-surface-container-highest: #222d3d;
+  --color-surface: #121820;
+  --color-on-surface: #f1f5f9;
+  --color-on-surface-variant: #94a3b8;
+  --color-on-background: #f1f5f9;
+  --color-outline: #475569;
+  --color-outline-variant: #1e293b;
+  --color-primary: #a3e635; /* Electric Cyber Lime */
+  --color-on-primary: #0f172a;
+  --color-primary-container: #1e293b;
+  --color-on-primary-container: #e2f8c0;
+  --color-secondary-container: #0f172a;
+  --color-on-secondary-container: #38bdf8;
+  --color-secondary: #38bdf8; /* Cyan Glow */
+  
+  background: linear-gradient(135deg, #080a0d 0%, #0d1520 50%, #102e1c 100%) !important;
+}
+
+.theme-cyberlime .glass-pill {
+  background: rgba(18, 24, 32, 0.8) !important;
+  border: 1px solid rgba(163, 230, 53, 0.15) !important;
+}
+
+/* Radiant Modern Sunrise Sunset Theme */
+.theme-sunset {
+  --color-background: #fff9f6;
+  --color-surface-container: #fef1eb;
+  --color-surface-container-low: #fff5f0;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-high: #fce4d6;
+  --color-surface-container-highest: #fad7c3;
+  --color-surface: #fef1eb;
+  --color-on-surface: #381a10;
+  --color-on-surface-variant: #6e4d41;
+  --color-on-background: #381a10;
+  --color-outline: #a88d83;
+  --color-outline-variant: #fad0be;
+  --color-primary: #ff5e3a; /* Coral Orange Sunset */
+  --color-on-primary: #ffffff;
+  --color-primary-container: #fed7c7;
+  --color-on-primary-container: #510a00;
+  --color-secondary-container: #fcdfcb;
+  --color-on-secondary-container: #471b05;
+  --color-secondary: #f59e0b; /* Golden Sun */
+  
+  background: linear-gradient(135deg, #fff9f6 0%, #fef1eb 50%, #ffd0bc 100%) !important;
+}
+
+.theme-sunset .glass-pill {
+  background: rgba(255, 249, 246, 0.8) !important;
+  border: 1px solid rgba(255, 94, 58, 0.1) !important;
+}
+
+/* Pearl Holographic Pearl/Lilac Aurora Theme */
+.theme-aurora {
+  --color-background: #f5f4fc;
+  --color-surface-container: #ecf8f5;
+  --color-surface-container-low: #f2faf8;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-high: #e2f5f1;
+  --color-surface-container-highest: #d2f0eb;
+  --color-surface: #ecf8f5;
+  --color-on-surface: #2d2643;
+  --color-on-surface-variant: #5f547c;
+  --color-on-background: #2d2643;
+  --color-outline: #978dad;
+  --color-outline-variant: #dfdbe8;
+  --color-primary: #06b6d4; /* Vivid Bright Turquoise */
+  --color-on-primary: #ffffff;
+  --color-primary-container: #cffafe;
+  --color-on-primary-container: #083344;
+  --color-secondary-container: #fae8ff;
+  --color-on-secondary-container: #701a75;
+  --color-secondary: #ec4899; /* Bright Pink */
+  
+  background: linear-gradient(135deg, #f5f4fc 0%, #daf9f1 50%, #fde6f6 100%) !important;
+}
+
+.theme-aurora .glass-pill {
+  background: rgba(236, 248, 245, 0.85) !important;
+  border: 1px solid rgba(6, 182, 212, 0.15) !important;
+}

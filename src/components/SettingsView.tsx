@@ -377,11 +377,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     { id: 'sepia', label: 'Sepia', preview: 'bg-[#f4edd8]', desc: 'Warm Paper' },
                     { id: 'ocean', label: 'Ocean', preview: 'bg-[#0b131a] border-[#132230]', desc: 'Calming Blue' },
                     { id: 'forest', label: 'Forest', preview: 'bg-[#0d1612] border-[#1b2d22]', desc: 'Deep Velvet' },
-                    { id: 'cosmic', label: 'Cosmic', preview: 'bg-[#110e1a] border-[#221a36]', desc: 'Violet Nebula' }
+                    { id: 'cosmic', label: 'Cosmic', preview: 'bg-[#110e1a] border-[#221a36]', desc: 'Violet Nebula' },
+                    { id: 'cyberlime', label: 'Cyberlime', preview: 'bg-[#080a0d] border-[#a3e635]', desc: 'Electric Lime' },
+                    { id: 'sunset', label: 'Sunset', preview: 'bg-[#fff5f0] border-[#ff5e3a]', desc: 'Coral Sun' },
+                    { id: 'aurora', label: 'Aurora', preview: 'bg-[#f5f4fc] border-[#06b6d4]', desc: 'Holo Mint Pearl' }
                   ].map((t) => (
                     <div
                       key={t.id}
-                      onClick={() => onUpdateSettings({ themeMode: t.id as 'light' | 'dark' | 'sepia' | 'ocean' | 'forest' | 'cosmic' })}
+                      onClick={() => onUpdateSettings({ themeMode: t.id as 'light' | 'dark' | 'sepia' | 'ocean' | 'forest' | 'cosmic' | 'cyberlime' | 'sunset' | 'aurora' })}
                       className={`p-3 rounded-xl border flex flex-col items-center gap-2 cursor-pointer transition-all ${userSettings.themeMode === t.id ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-outline-variant/20 bg-surface hover:border-outline-variant/50'}`}
                     >
                       <div className={`w-10 h-10 rounded-full border border-outline-variant/30 flex items-center justify-center ${t.preview} shadow-sm`}>
