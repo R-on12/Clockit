@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, MessageSquare, Users2, Settings, TrendingUp, Sparkles, UserCheck } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, Users2, Settings, TrendingUp, Sparkles, UserCheck, Search } from 'lucide-react';
 import logoUrl from './assets/images/hand_logo_outline_1779806157572.png';
 import {
   initialConversations,
@@ -54,6 +54,38 @@ export default function App() {
   const [vitalState, setVitalState] = useState<VitalState>(initialVitalState);
   const [activeConversationId, setActiveConversationId] = useState<string>('wellness_guide');
   const [showNewChatOverlay, setShowNewChatOverlay] = useState<boolean>(false);
+  const [registeredUsersList, setRegisteredUsersList] = useState<any[]>([]);
+  const [loadingUsersDir, setLoadingUsersDir] = useState<boolean>(false);
+  const [usersDirSearch, setUsersDirSearch] = useState<string>('');
+
+  // Sync registered users from Firestore for safe messaging
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    setLoadingUsersDir(true);
+    const usersRef = collection(db, 'users');
+    const unsubscribe = onSnapshot(usersRef, (snapshot) => {
+      const fetched: any[] = [];
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        // Skip current user to prevent direct messaging yourself
+        if (doc.id !== currentUserUid) {
+          fetched.push({
+            uid: doc.id,
+            name: data.name || 'Anonymous Member',
+            avatar: data.avatar || '',
+            membership: data.membership || 'Registered Member',
+            zenLevel: data.zenLevel ?? 12
+          });
+        }
+      });
+      setRegisteredUsersList(fetched);
+      setLoadingUsersDir(false);
+    }, (error) => {
+      console.error('Error fetching registered users directory:', error);
+      setLoadingUsersDir(false);
+    });
+    return () => unsubscribe();
+  }, [isLoggedIn, currentUserUid]);
 
   // 1. Verify Firestore Connection on Boot
   useEffect(() => {
@@ -604,12 +636,20 @@ export default function App() {
     setShowNewChatOverlay(true);
   };
 
-  const handleCreateContactConversation = (name: string) => {
-    const customId = `contact_${Date.now()}`;
+  const handleCreateContactConversation = (name: string, targetUid?: string, avatarUrl?: string) => {
+    const customId = targetUid || `contact_${Date.now()}`;
+    const existing = conversations.find(c => c.id === customId || c.name === name);
+    if (existing) {
+      setActiveConversationId(existing.id);
+      setCurrentTab('active_guide_chat');
+      setShowNewChatOverlay(false);
+      return;
+    }
+
     const newConv: Conversation = {
       id: customId,
       name,
-      avatar: '', // JL/Letter avatar
+      avatar: avatarUrl || '', // JL/Letter avatar
       isGroup: false,
       lastMessage: 'A new silent channel formed.',
       unreadCount: 0,
@@ -620,6 +660,7 @@ export default function App() {
           id: `con_${Date.now()}`,
           senderId: customId,
           senderName: name,
+          senderAvatar: avatarUrl || '',
           text: `Welcome! Let us co-create beautiful alignment here.`,
           timestamp: 'Today, Just Now',
           timeLabel: 'JUST NOW',
@@ -860,45 +901,83 @@ export default function App() {
       {/* New Chat Contact Overlay Builder popup modal */}
       {showNewChatOverlay && (
         <div className="fixed inset-0 bg-inverse-surface/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-surface w-full max-w-sm rounded-3xl p-6 shadow-2xl relative border border-outline-variant/30 text-center animate-fade-in">
-            <h3 className="font-headline text-xl font-bold text-primary mb-2">Form Wellness Pause</h3>
-            <p className="text-xs text-outline mb-6">Enter a companion name to form an invite-only silent thread.</p>
+          <div className="bg-surface w-full max-w-md rounded-3xl p-6 shadow-2xl relative border border-outline-variant/30 text-left animate-fade-in flex flex-col max-h-[85vh]">
+            <h3 className="font-headline text-2xl font-bold text-primary mb-1">Message a Registered Member</h3>
+            <p className="text-xs text-outline mb-4">You can only connect with other users registered to this platform.</p>
             
-            <div className="space-y-4 text-left">
-              <div>
-                <label className="text-xs text-outline font-label block mb-1">Companion Name</label>
-                <input 
-                  type="text" 
-                  placeholder="e.g. Leo Vance, Aria Greenfield"
-                  id="new-contact-name-input"
-                  className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl py-3 px-4 text-sm font-body focus:ring-1 focus:ring-primary outline-none"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      const val = (e.target as HTMLInputElement).value;
-                      if (val.trim()) handleCreateContactConversation(val);
-                    }
-                  }}
-                />
-              </div>
+            <div className="relative mb-4">
+              <input 
+                type="text" 
+                placeholder="Search registered members..."
+                value={usersDirSearch}
+                onChange={(e) => setUsersDirSearch(e.target.value)}
+                className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl py-3 px-4 pl-10 text-sm font-body text-on-surface focus:ring-1 focus:ring-primary outline-none"
+              />
+              <Search className="absolute left-3.5 top-3.5 w-4.5 h-4.5 text-outline pointer-events-none" />
             </div>
 
-            <div className="flex gap-3 mt-8">
-              <button 
-                onClick={() => setShowNewChatOverlay(false)}
-                className="flex-grow py-3 bg-surface-container-high rounded-xl text-xs font-bold text-outline uppercase tracking-wider font-label hover:bg-surface-dim transition-colors"
-              >
-                Cancel
-              </button>
+            <div className="overflow-y-auto flex-1 space-y-2 pr-1 min-h-[220px] max-h-[350px]">
+              {loadingUsersDir ? (
+                <div className="text-center py-10 text-xs text-outline">Searching registered directory...</div>
+              ) : registeredUsersList.filter(u => u.name.toLowerCase().includes(usersDirSearch.toLowerCase())).length > 0 ? (
+                registeredUsersList
+                  .filter(u => u.name.toLowerCase().includes(usersDirSearch.toLowerCase()))
+                  .map((u) => (
+                    <button
+                      key={u.uid}
+                      onClick={() => {
+                        handleCreateContactConversation(u.name, u.uid, u.avatar);
+                        setUsersDirSearch('');
+                      }}
+                      className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-surface-container-low transition-all border border-transparent hover:border-outline-variant/10 text-left cursor-pointer group"
+                    >
+                      <div className="flex items-center gap-3">
+                        {u.avatar ? (
+                          <img 
+                            src={u.avatar} 
+                            alt={u.name} 
+                            className="w-10 h-10 rounded-full object-cover border border-outline-variant/10"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
+                            {u.name.split(' ').map((n: string) => n[0]).slice(0, 2).join('')}
+                          </div>
+                        )}
+                        <div>
+                          <div className="font-body text-sm font-bold text-on-surface group-hover:text-primary transition-colors">
+                            {u.name}
+                          </div>
+                          <div className="text-[10px] text-outline font-mono">
+                            Zen Level {u.zenLevel} • {u.membership}
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-xs text-primary bg-primary/5 px-2.5 py-1 rounded-full font-semibold group-hover:bg-primary group-hover:text-on-primary transition-all">
+                        Chat
+                      </span>
+                    </button>
+                  ))
+              ) : (
+                <div className="text-center py-12 text-outline flex flex-col items-center justify-center">
+                  <span className="text-2xl mb-2">🔒</span>
+                  <div className="text-sm font-bold text-on-surface">No Members Found</div>
+                  <div className="text-xs px-4 text-center mt-1">
+                    {usersDirSearch ? `No registered user matches "${usersDirSearch}".` : "No other users are currently registered on this database."}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3 mt-6">
               <button 
                 onClick={() => {
-                  const inputEl = document.getElementById('new-contact-name-input') as HTMLInputElement;
-                  if (inputEl && inputEl.value.trim()) {
-                    handleCreateContactConversation(inputEl.value);
-                  }
+                  setShowNewChatOverlay(false);
+                  setUsersDirSearch('');
                 }}
-                className="flex-grow py-3 bg-primary text-on-primary rounded-xl text-xs font-bold uppercase tracking-wider font-label hover:opacity-95 transition-all shadow-sm"
+                className="w-full py-3 bg-surface-container-high rounded-xl text-xs font-bold text-outline hover:bg-surface-dim transition-colors text-center uppercase tracking-wider font-label"
               >
-                Initiate
+                Close
               </button>
             </div>
           </div>
