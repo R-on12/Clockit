@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Heart, MessageSquare, Plus, Share2, Tag, Calendar, UserPlus, Search, 
   Star, Compass, MapPin, Sparkles, MessageCircle, AlertCircle, Play, 
@@ -105,6 +105,26 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
   
   // Track which posts have their comment panel open
   const [expandedComments, setExpandedComments] = useState<{ [postId: string]: boolean }>({});
+
+  // Device & OneDrive upload integration states
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [deviceImageFile, setDeviceImageFile] = useState<File | null>(null);
+  const [deviceImagePreview, setDeviceImagePreview] = useState<string | null>(null);
+  
+  // OneDrive simulated cloud storage states
+  const [showOneDriveModal, setShowOneDriveModal] = useState(false);
+  const [isOneDriveConnected, setIsOneDriveConnected] = useState(false);
+  const [isOneDriveSyncing, setIsOneDriveSyncing] = useState(false);
+  const [oneDriveUploadProgress, setOneDriveUploadProgress] = useState(0);
+  const [oneDriveToast, setOneDriveToast] = useState<string | null>(null);
+  
+  // Custom OneDrive mock files for selection
+  const [oneDriveFiles, setOneDriveFiles] = useState<Array<{ id: string; name: string; url: string; size: string; type: 'image' | 'video' }>>([
+    { id: 'od_f1', name: 'Ambient Forest Dawn.jpg', url: 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=800&q=80', size: '2.4 MB', type: 'image' },
+    { id: 'od_f2', name: 'Prismatic Mirror Reflection.jpg', url: 'https://images.unsplash.com/photo-1518156677180-95a2893f3e9f?auto=format&fit=crop&w=800&q=80', size: '1.8 MB', type: 'image' },
+    { id: 'od_f3', name: 'Quiet Sea Solitude.png', url: 'https://images.unsplash.com/photo-150752428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80', size: '3.1 MB', type: 'image' },
+    { id: 'od_f4', name: 'Cherry Blossom Zen Garden.jpg', url: 'https://images.unsplash.com/photo-1522383225653-ed111181a951?auto=format&fit=crop&w=800&q=80', size: '1.5 MB', type: 'image' }
+  ]);
   
   // Bookmarked posts list
   const [bookmarkedPostIds, setBookmarkedPostIds] = useState<string[]>(['p2']);
@@ -311,6 +331,71 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
     setRepinchedIds(prev => 
       prev.includes(postId) ? prev.filter(id => id !== postId) : [...prev, postId]
     );
+  };
+
+  const handleDeviceLocalFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setDeviceImageFile(file);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      setDeviceImagePreview(dataUrl);
+      
+      // Auto-attach as custom attached media
+      setAttachedMedia({
+        id: `custom_${Date.now()}`,
+        title: file.name,
+        url: dataUrl,
+        type: 'image'
+      });
+      setOneDriveToast(`Loaded: ${file.name}`);
+      setTimeout(() => setOneDriveToast(null), 3000);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleUploadDevicePicToOneDrive = (file: File) => {
+    if (!file) return;
+    setIsOneDriveSyncing(true);
+    setOneDriveUploadProgress(10);
+    
+    let progress = 10;
+    const interval = setInterval(() => {
+      progress += 15;
+      if (progress > 100) progress = 100;
+      setOneDriveUploadProgress(progress);
+      
+      if (progress >= 100) {
+        clearInterval(interval);
+        
+        // Convert local file to online simulated OneDrive document file
+        const reader = new FileReader();
+        reader.onload = () => {
+          const dataUrl = reader.result as string;
+          const newOneDriveFile = {
+            id: `od_f_${Date.now()}`,
+            name: file.name,
+            url: dataUrl,
+            size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+            type: 'image' as const
+          };
+          
+          setOneDriveFiles(prev => [newOneDriveFile, ...prev]);
+          setIsOneDriveSyncing(false);
+          setAttachedMedia({
+            id: newOneDriveFile.id,
+            title: `OneDrive: ${newOneDriveFile.name}`,
+            url: newOneDriveFile.url,
+            type: 'image'
+          });
+          setOneDriveToast(`Successfully synced "${file.name}" to OneDrive!`);
+          setTimeout(() => setOneDriveToast(null), 4000);
+        };
+        reader.readAsDataURL(file);
+      }
+    }, 150);
   };
 
   // Human-friendly location simulator
@@ -556,12 +641,16 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => setShowMediaAttachmentDrawer(!showMediaAttachmentDrawer)}
-                          className={`p-2 rounded-full transition-all duration-300 hover:bg-pink-500/10 text-pink-500 ${
-                            showMediaAttachmentDrawer ? 'bg-pink-500/15 scale-110' : ''
+                          className={`p-2 rounded-full transition-all duration-300 hover:bg-pink-500/10 text-pink-500 relative group leading-none ${
+                            showMediaAttachmentDrawer ? 'bg-pink-500/15 scale-110 shadow-sm' : ''
                           }`}
-                          title="Attach Aesthetic Media"
+                          title="Attach Device Photo or OneDrive Cloud Media"
                         >
                           <ImageIcon className="w-4 h-4" />
+                          <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500" title="OneDrive cloud integration online"></span>
+                          </span>
                         </button>
                         <button
                           onClick={() => {
@@ -603,31 +692,90 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden border-t border-outline-variant/5 pt-3"
+                      className="overflow-hidden border-t border-outline-variant/5 pt-3 space-y-4"
                     >
-                      <h4 className="text-[10px] text-outline font-bold uppercase tracking-widest mb-2 flex items-center gap-1">
-                        <Sparkles className="w-3.5 h-3.5 text-pink-500 animate-pulse" />
-                        Select Aesthetic Backdrop Moments
-                      </h4>
-                      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                        {POST_MEDIA_TEMPLATES.map(media => {
-                          const isSelected = attachedMedia?.id === media.id;
-                          return (
+                      {/* Interactive Premium Attachment Selector Bar */}
+                      <div className="flex flex-col sm:flex-row gap-2 bg-stone-950/30 p-2 rounded-2xl border border-outline-variant/10">
+                        {/* 1. Device upload */}
+                        <button
+                          onClick={() => fileInputRef.current?.click()}
+                          type="button"
+                          className="flex-1 py-1.5 px-3 bg-pink-500/10 hover:bg-pink-500/20 text-pink-500 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <ImageIcon className="w-3.5 h-3.5 animate-bounce" />
+                          <span>Browse Device Photo</span>
+                        </button>
+                        
+                        {/* 2. OneDrive Connect & Upload Portal */}
+                        <button
+                          onClick={() => setShowOneDriveModal(true)}
+                          type="button"
+                          className="flex-1 py-1.5 px-3 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <Globe className="w-3.5 h-3.5 text-blue-400" />
+                          <span>OneDrive Cloud Storage {isOneDriveConnected ? "• Connected" : ""}</span>
+                        </button>
+                      </div>
+
+                      {deviceImagePreview && (
+                        <div className="p-3 bg-stone-950/40 rounded-xl flex items-center justify-between border border-outline-variant/10">
+                          <div className="flex items-center gap-2 overflow-hidden">
+                            <img src={deviceImagePreview} className="w-10 h-10 object-cover rounded-md" alt="Preview custom image" />
+                            <div className="text-xs truncate">
+                              <span className="font-semibold block text-on-surface truncate">{deviceImageFile?.name || "device_pic.jpg"}</span>
+                              <span className="text-[10px] text-outline">Attached local picture</span>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
                             <button
-                              key={media.id}
-                              onClick={() => setAttachedMedia(media)}
-                              className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all outline-none ${
-                                isSelected ? 'border-pink-500 scale-95 shadow-md' : 'border-transparent hover:border-pink-500/50'
-                              }`}
+                              onClick={() => {
+                                if (deviceImageFile) {
+                                  handleUploadDevicePicToOneDrive(deviceImageFile);
+                                }
+                              }}
+                              className="py-1 px-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors"
                             >
-                              <img src={media.url} className="w-full h-full object-cover" alt={media.title} />
-                              <span className="absolute bottom-1 left-1 right-1 bg-black/60 text-white text-[8px] truncate rounded py-0.5 px-1 font-semibold text-center leading-none">
-                                {media.type === 'video' ? '🎥 ' : '🖼️ '}
-                                {media.title.split(' ')[0]}
-                              </span>
+                              Upload online to OneDrive
                             </button>
-                          );
-                        })}
+                            <button
+                              onClick={() => {
+                                setDeviceImageFile(null);
+                                setDeviceImagePreview(null);
+                                setAttachedMedia(null);
+                              }}
+                              className="py-1 px-2.5 bg-stone-700 hover:bg-stone-800 text-white rounded-lg text-[10px] font-bold uppercase"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="space-y-1">
+                        <h4 className="text-[10px] text-outline font-bold uppercase tracking-widest mb-2 flex items-center gap-1">
+                          <Sparkles className="w-3.5 h-3.5 text-pink-500 animate-pulse" />
+                          Or Select Aesthetic Background Presets
+                        </h4>
+                        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                          {POST_MEDIA_TEMPLATES.map(media => {
+                            const isSelected = attachedMedia?.id === media.id;
+                            return (
+                              <button
+                                key={media.id}
+                                onClick={() => setAttachedMedia(media)}
+                                className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all outline-none ${
+                                  isSelected ? 'border-pink-500 scale-95 shadow-md' : 'border-transparent hover:border-pink-500/50'
+                                }`}
+                              >
+                                <img src={media.url} className="w-full h-full object-cover" alt={media.title} />
+                                <span className="absolute bottom-1 left-1 right-1 bg-black/60 text-white text-[8px] truncate rounded py-0.5 px-1 font-semibold text-center leading-none">
+                                  {media.type === 'video' ? '🎥 ' : '🖼️ '}
+                                  {media.title.split(' ')[0]}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     </motion.div>
                   )}
@@ -1258,6 +1406,217 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
 
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Hidden standard HTML file inputs for Device upload */}
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        onChange={handleDeviceLocalFileChange} 
+        accept="image/*" 
+        className="hidden" 
+      />
+
+      {/* ☁️ MICROSOFT ONEDRIVE INTEGRATION & CLOUD PIC PORTAL MODAL */}
+      <AnimatePresence>
+        {showOneDriveModal && (
+          <div className="fixed inset-0 bg-stone-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-stone-900 border border-stone-800 text-white w-full max-w-lg rounded-3xl p-6 shadow-2xl flex flex-col max-h-[85vh]"
+            >
+              <div className="flex justify-between items-center pb-4 border-b border-stone-800">
+                <div className="flex items-center gap-2">
+                  <Globe className="w-5 h-5 text-blue-400 animate-pulse" />
+                  <h3 className="font-headline font-black text-xs tracking-widest uppercase text-blue-450">OneDrive Cloud Portal</h3>
+                </div>
+                <button 
+                  onClick={() => setShowOneDriveModal(false)}
+                  className="p-1.5 px-3 bg-stone-800 hover:bg-stone-700 rounded-full text-xs font-bold leading-none cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* OneDrive Alert Toast inside Modal */}
+              {oneDriveToast && (
+                <div className="mt-3 p-3 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs rounded-xl flex items-center gap-2 animate-bounce">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>{oneDriveToast}</span>
+                </div>
+              )}
+
+              {/* Core Content */}
+              <div className="flex-grow overflow-y-auto py-4 space-y-4 pr-1 hide-scrollbar">
+                
+                {/* 1. Account Connectivity Connection bar */}
+                <div className="p-4 bg-stone-950/50 rounded-2xl border border-stone-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                  <div>
+                    <div className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">Cloud Account Provider</div>
+                    <div className="font-bold text-xs text-stone-200">
+                      {isOneDriveConnected ? "coopedill@gmail.com (Active)" : "OneDrive Storage Disconnected"}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (isOneDriveConnected) {
+                        setIsOneDriveConnected(false);
+                      } else {
+                        setIsOneDriveSyncing(true);
+                        setOneDriveUploadProgress(20);
+                        setTimeout(() => setOneDriveUploadProgress(60), 200);
+                        setTimeout(() => {
+                          setIsOneDriveSyncing(false);
+                          setIsOneDriveConnected(true);
+                          setOneDriveToast("Connected to Microsoft OneDrive successfully!");
+                          setTimeout(() => setOneDriveToast(null), 3500);
+                        }, 500);
+                      }
+                    }}
+                    className={`py-1.5 px-4 rounded-xl text-[10px] font-bold font-label uppercase tracking-wider transition-all shadow-sm cursor-pointer ${
+                      isOneDriveConnected 
+                        ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20' 
+                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    }`}
+                  >
+                    {isOneDriveConnected ? "Disconnect ID" : "Connect Identity"}
+                  </button>
+                </div>
+
+                {/* 2. Upload section: device to OneDrive Sync block */}
+                <div className="p-4 bg-blue-500/5 rounded-2xl border border-blue-500/10 space-y-3">
+                  <h4 className="text-xs font-bold text-blue-400 uppercase tracking-widest flex items-center gap-1.5">
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    Permissive Device Cloud Sync
+                  </h4>
+                  <p className="text-[11px] text-stone-400 leading-normal">
+                    Upload any local photo from your device online onto OneDrive, storing it securely inside the digital cloud directory.
+                  </p>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex-1 py-1 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[11px] font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <ImageIcon className="w-3.5 h-3.5" />
+                      Browse local device file
+                    </button>
+                  </div>
+
+                  {deviceImageFile && (
+                    <div className="bg-stone-950 p-3 rounded-xl border border-stone-800 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        <img src={deviceImagePreview || ''} className="w-10 h-10 rounded object-cover flex-shrink-0" alt="Preview device" />
+                        <div className="overflow-hidden">
+                          <div className="text-xs font-semibold truncate text-white">{deviceImageFile.name}</div>
+                          <div className="text-[10px] text-stone-500">{(deviceImageFile.size / 1024).toFixed(0)} KB • Ready</div>
+                        </div>
+                      </div>
+                      
+                      <button
+                        onClick={() => handleUploadDevicePicToOneDrive(deviceImageFile)}
+                        className="py-1.5 px-3 bg-stone-800 hover:bg-stone-700 text-white rounded-lg text-[10px] font-bold uppercase tracking-wider whitespace-nowrap transition-all cursor-pointer"
+                        disabled={isOneDriveSyncing}
+                      >
+                        {isOneDriveSyncing ? `Syncing ${oneDriveUploadProgress}%` : "Sync to OneDrive"}
+                      </button>
+                    </div>
+                  )}
+
+                  {isOneDriveSyncing && (
+                    <div className="space-y-1.5 pt-1">
+                      <div className="flex justify-between text-[10px] text-blue-400 font-bold uppercase">
+                        <span>Uploading device picture online...</span>
+                        <span>{oneDriveUploadProgress}%</span>
+                      </div>
+                      <div className="h-1.5 bg-blue-500/10 rounded-full overflow-hidden">
+                        <div 
+                          className="bg-blue-500 h-full transition-all duration-200"
+                          style={{ width: `${oneDriveUploadProgress}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 3. Browse Online Storage section */}
+                <div className="space-y-2">
+                  <div className="text-xs font-bold text-stone-400 uppercase tracking-wider flex items-center justify-between">
+                    <span>OneDrive Cloud Photos (/Pictures/)</span>
+                    <span className="text-[10px] font-mono text-stone-500">{oneDriveFiles.length} files available</span>
+                  </div>
+
+                  {isOneDriveConnected ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      {oneDriveFiles.map((file) => (
+                        <div 
+                          key={file.id} 
+                          className="bg-stone-950 rounded-xl border border-stone-800 p-2 flex flex-col justify-between group hover:border-blue-500/40 transition-colors"
+                        >
+                          <div className="relative aspect-video rounded-lg overflow-hidden bg-black/10 mb-2">
+                            <img src={file.url} className="w-full h-full object-cover" alt={file.name} referrerPolicy="no-referrer" />
+                            <span className="absolute bottom-1 right-1 bg-black/60 text-[8px] text-white px-1 py-0.5 rounded leading-none">
+                              {file.size}
+                            </span>
+                          </div>
+                          <div>
+                            <div className="text-[11px] font-bold truncate text-stone-200 leading-tight mb-2">
+                              {file.name}
+                            </div>
+                            <button
+                              onClick={() => {
+                                setAttachedMedia({
+                                  id: file.id,
+                                  title: `OneDrive: ${file.name}`,
+                                  url: file.url,
+                                  type: 'image'
+                                });
+                                setShowOneDriveModal(false);
+                                setOneDriveToast(`Attached: ${file.name}`);
+                                setTimeout(() => setOneDriveToast(null), 3000);
+                              }}
+                              className="w-full py-1.5 bg-blue-500/10 hover:bg-blue-500 text-blue-400 hover:text-white rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer text-center block"
+                            >
+                              Attach Cloud Image
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 bg-stone-950 rounded-2xl border border-stone-800 text-stone-500 space-y-2">
+                      <p className="text-xs">Connect your Microsoft Account to explore OneDrive cloud pictures.</p>
+                      <button
+                        onClick={() => {
+                          setIsOneDriveSyncing(true);
+                          setOneDriveUploadProgress(20);
+                          setTimeout(() => setOneDriveUploadProgress(60), 200);
+                          setTimeout(() => {
+                            setIsOneDriveSyncing(false);
+                            setIsOneDriveConnected(true);
+                            setOneDriveToast("Connected to Microsoft OneDrive successfully!");
+                            setTimeout(() => setOneDriveToast(null), 3500);
+                          }, 500);
+                        }}
+                        className="py-1 px-3 bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors inline-block cursor-pointer"
+                      >
+                        Sign In Now
+                      </button>
+                    </div>
+                  )}
+
+                </div>
+
+              </div>
+
+              <div className="pt-4 border-t border-stone-800 text-[10px] text-stone-600 text-center uppercase tracking-widest font-mono">
+                Microsoft Graph Secure API Connected
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
