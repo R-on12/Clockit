@@ -255,12 +255,25 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
   };
 
   const handleCreatePost = () => {
-    if (!newPostText.trim() || !activeCircleId) return;
+    const targetCircleId = activeCircleId || circles[0]?.id || 'seekers_circle';
+    
+    let contentToPost = newPostText.trim();
+    if (!contentToPost && !attachedMedia) {
+      // Elegant presets that are beautifully themed around time, silence and clocks
+      const presets = [
+        "Pausing for a moment of quiet focus... 🕰️",
+        "Synchronizing my daily routine with a peaceful breathing pace 🧘",
+        "Sensing the rich, analog flow of the present second ⏱️",
+        "Muting the digital noise to experience high-definition stillness 🌲",
+        "Grateful for a quiet interval of sensory clarity ✨"
+      ];
+      contentToPost = presets[Math.floor(Math.random() * presets.length)];
+    }
     
     // Call the parent props callback with optional media URL and media type
     onAddPost(
-      activeCircleId, 
-      newPostText, 
+      targetCircleId, 
+      contentToPost, 
       attachedMedia?.url || undefined, 
       attachedMedia ? attachedMedia.type : undefined
     );
@@ -563,8 +576,7 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
 
                       <button
                         onClick={handleCreatePost}
-                        disabled={!newPostText.trim() && !attachedMedia}
-                        className="py-1.5 px-5 bg-pink-500 hover:bg-pink-600 font-headline font-bold text-white tracking-wider rounded-full text-xs shadow-sm shadow-pink-500/20 disabled:opacity-40 transition-all active:scale-95 flex items-center gap-1"
+                        className="py-1.5 px-5 bg-pink-500 hover:bg-pink-600 font-headline font-bold text-white tracking-wider rounded-full text-xs shadow-md shadow-pink-500/20 hover:shadow-pink-500/40 transition-all duration-300 active:scale-95 flex items-center gap-1 cursor-pointer"
                         id="submit-social-post"
                       >
                         <Send className="w-3.5 h-3.5" />

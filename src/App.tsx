@@ -326,9 +326,22 @@ export default function App() {
         if (loadedPosts.length > 0) {
           setCircles(prev => prev.map(c => {
             if (c.id === circle.id) {
+              // Merge Firestore snapshots with local state to preserve hasLiked status and keep unsynced posts
+              const mergedPosts = loadedPosts.map(loadedP => {
+                const existingP = c.posts.find(p => p.id === loadedP.id);
+                return {
+                  ...loadedP,
+                  hasLiked: existingP ? !!existingP.hasLiked : false
+                };
+              });
+
+              const unsyncedLocalPosts = c.posts.filter(p => 
+                p.id.startsWith('post_') && !mergedPosts.some(mp => mp.id === p.id)
+              );
+
               return {
                 ...c,
-                posts: loadedPosts
+                posts: [...unsyncedLocalPosts, ...mergedPosts]
               };
             }
             return c;
@@ -516,7 +529,7 @@ export default function App() {
   // Circle / Community Posts Actions
   const handleAddPost = async (circleId: string, content: string, mediaUrl?: string, mediaType?: 'image' | 'video' | 'none') => {
     const postId = `post_${Date.now()}`;
-    const newPost = {
+    const newPost: any = {
       id: postId,
       circleId,
       authorId: currentUserUid || 'anonymous',
@@ -525,13 +538,40 @@ export default function App() {
       content,
       timeLabel: 'Just Now',
       likes: 0,
+      hasLiked: false,
+      comments: [],
       createdAt: new Date().toISOString(),
       ...(mediaUrl ? { mediaUrl } : {}),
       ...(mediaType ? { mediaType } : {})
     };
 
+    // Update local state IMMEDIATELY so the post shows up on the timeline with zero lag/loading latency
+    setCircles(prev => prev.map(c => {
+      if (c.id === circleId) {
+        const exists = c.posts.some(p => p.id === postId);
+        if (exists) return c;
+        return {
+          ...c,
+          posts: [newPost, ...c.posts]
+        };
+      }
+      return c;
+    }));
+
     const postDocRef = doc(db, 'circles', circleId, 'posts', postId);
-    await setDoc(postDocRef, newPost).catch(err => {
+    await setDoc(postDocRef, {
+      id: newPost.id,
+      circleId: newPost.circleId,
+      authorId: newPost.authorId,
+      authorName: newPost.authorName,
+      authorAvatar: newPost.authorAvatar,
+      content: newPost.content,
+      timeLabel: newPost.timeLabel,
+      likes: newPost.likes,
+      createdAt: newPost.createdAt,
+      mediaUrl: mediaUrl || '',
+      mediaType: mediaType || 'none'
+    }).catch(err => {
       handleFirestoreError(err, OperationType.CREATE, `circles/${circleId}/posts/${postId}`);
     });
   };
