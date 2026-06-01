@@ -55,7 +55,7 @@ const POST_MEDIA_TEMPLATES = [
     type: 'image' as const
   },
   {
-    id: 'tea_zen',
+    id: 'tea_clock',
     title: 'Bonsai Tea Room',
     url: 'https://images.unsplash.com/photo-1545048702-79362596cdc9?auto=format&fit=crop&w=800&q=80',
     type: 'image' as const
@@ -156,7 +156,7 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
 
   // Trending Topics of Clockit (X style)
   const trendingTopics: TrendTopic[] = [
-    { id: 't1', hashtag: '#ZenChallenge', postsCount: '4.8K', description: 'Mindful seekers practice 20-min daily pine silence.', category: 'Global Movement' },
+    { id: 't1', hashtag: '#ClockChallenge', postsCount: '4.8K', description: 'Mindful seekers practice 20-min daily pine silence.', category: 'Global Movement' },
     { id: 't2', hashtag: '#PinchToPause', postsCount: '3.2K', description: 'Capturing moments of slow breathing in hectic periods.', category: 'Trending in Tech' },
     { id: 't3', hashtag: '#SlowTrend', postsCount: '1.9K', description: 'Advocates sharing peaceful high-definition analog garden shots.', category: 'Lifestyle' },
     { id: 't4', hashtag: '#MuteTheNoise', postsCount: '942', description: 'Turning off all alerts and reporting sensory clarity.', category: 'Health & Soul' }
@@ -188,8 +188,8 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
               ...data
             });
           });
-          // Sort by Zen Level descending
-          fetched.sort((a, b) => (b.zenLevel ?? 0) - (a.zenLevel ?? 0));
+          // Sort by Clock Level descending
+          fetched.sort((a, b) => ((b.clockLevel ?? b.zenLevel ?? 0) - (a.clockLevel ?? a.zenLevel ?? 0)));
           setUsersList(fetched);
           setLoadingUsers(false);
         },
@@ -297,7 +297,7 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
       'Whisperwood Spires',
       'Amber Solstice Ridge',
       'Cyan Abyssal Sanctuary',
-      'Nebula Zenith Garden',
+      'Nebula Clock Garden',
       'Emerald Grove Oasis',
       'Cosmic Astral Valley',
       'Sunset Meridian Peaks'
@@ -337,7 +337,7 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
       { id: 'v3', url: 'https://images.unsplash.com/photo-1518156677180-95a2893f3e9f?auto=format&fit=crop&w=800&q=80', authorName: 'Marcus Thorne', title: 'Wellness Solstice', type: 'video' as const, likes: 82 },
       { id: 'v4', url: 'https://images.unsplash.com/photo-1506318137071-a8e063b4bec0?auto=format&fit=crop&w=800&q=80', authorName: 'Dr. Evelyn Moss', title: 'Nebula Sinks', type: 'video' as const, likes: 210 },
       { id: 'v5', url: 'https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=800&q=80', authorName: 'Sienna Ray', title: 'Hearth Raindrops', type: 'image' as const, likes: 65 },
-      { id: 'v6', url: 'https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?auto=format&fit=crop&w=800&q=80', authorName: 'Zenith Guide', title: 'Morning Ascent', type: 'image' as const, likes: 154 }
+      { id: 'v6', url: 'https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?auto=format&fit=crop&w=800&q=80', authorName: 'Clock Guide', title: 'Morning Ascent', type: 'image' as const, likes: 154 }
     ];
 
     // Grab actual attachments from active stream if any
@@ -508,7 +508,7 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
                     <textarea
                       value={newPostText}
                       onChange={(e) => setNewPostText(e.target.value)}
-                      placeholder={`What’s happening in your zen practice, ${activeCircle.name}?`}
+                      placeholder={`What’s happening in your clock practice, ${activeCircle.name}?`}
                       className="w-full bg-transparent text-sm font-body text-on-surface placeholder:text-outline/40 border-none outline-none focus:ring-0 resize-none h-20"
                     />
 
@@ -555,7 +555,7 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
                             setNewPostText(prev => prev + ' 😊');
                           }}
                           className="p-2 rounded-full hover:bg-pink-500/10 text-pink-500 transition-colors"
-                          title="Add Zen smile"
+                          title="Add Clock smile"
                         >
                           <Smile className="w-4 h-4" />
                         </button>
@@ -674,7 +674,7 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
                             {post.mediaType === 'video' ? (
                               <div className="absolute inset-0 bg-black/30 flex flex-col justify-between p-4 text-white">
                                 <span className="self-start text-[10px] uppercase font-bold tracking-widest bg-pink-500/80 backdrop-blur px-2.5 py-1 rounded-full flex items-center gap-1">
-                                  <Film className="w-3 h-3 text-white" /> Live Zen Track
+                                  <Film className="w-3 h-3 text-white" /> Live Clock Track
                                 </span>
 
                                 <div className="space-y-3">
@@ -999,7 +999,7 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
                                 <h3 className="font-headline font-bold text-base text-on-surface truncate group-hover:text-pink-500 transition-colors">
                                   {user.name}
                                 </h3>
-                                {user.zenLevel >= 20 && (
+                                {(user.clockLevel ?? user.zenLevel ?? 12) >= 20 && (
                                   <Sparkles className="w-3.5 h-3.5 text-pink-500 flex-shrink-0 animate-bounce" />
                                 )}
                               </div>
@@ -1009,7 +1009,7 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
                                   {user.membership || 'Aura Seeker'}
                                 </span>
                                 <span className="text-[10px] font-mono text-outline">
-                                  Zen {user.zenLevel ?? 12}
+                                  Clock {user.clockLevel ?? user.zenLevel ?? 12}
                                 </span>
                               </div>
                             </div>

@@ -1283,34 +1283,6 @@ export const ChatView: React.FC<ChatViewProps> = ({
             </div>
           </div>
 
-          {/* Journal breathing pacemaker pacing options */}
-          <div className="space-y-2">
-            <div className="flex justify-between items-center text-[10px] uppercase font-mono tracking-wider">
-              <span className="text-on-surface-variant font-semibold">Breathing companion speed</span>
-              <span className="text-secondary font-bold capitalize">{breathingPace}</span>
-            </div>
-            <div className="grid grid-cols-3 gap-1 bg-surface-container-low p-1 rounded-xl border border-outline-variant/15">
-              {(['slow', 'normal', 'fast'] as const).map(pace => (
-                <button
-                  key={pace}
-                  onClick={() => setBreathingPace(pace)}
-                  className={`py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                    breathingPace === pace 
-                      ? 'bg-secondary text-neutral-900 shadow-sm' 
-                      : 'text-on-surface-variant hover:bg-surface-container-high'
-                  }`}
-                >
-                  {pace}
-                </button>
-              ))}
-            </div>
-            <span className="text-[9px] text-outline block leading-tight">
-              {breathingPace === 'slow' && "Slow (10s Cosmic cycle): Advanced deep slow breathing for complete center alignment."}
-              {breathingPace === 'normal' && "Normal (7s Standard cycle): Perfect rhythmic balance suited for focused journaling."}
-              {breathingPace === 'fast' && "Fast (4.5s Focused Flow): Quick energizing breathing intervals to revitalize mindset."}
-            </span>
-          </div>
-
           {/* Coaching Guides Toggle */}
           <button 
             onClick={() => setShowGuidanceTips(!showGuidanceTips)}
@@ -1391,13 +1363,13 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 <span className="relative z-10 text-[8px] font-mono leading-none tracking-tight font-semibold text-amber-805 dark:text-amber-300 text-left truncate w-full">Gold</span>
               </button>
 
-              {/* Zen Lavender */}
+              {/* Clock Lavender */}
               <button
                 onClick={() => handleWallpaperChange('lavender')}
                 className={`relative aspect-video rounded-xl border-2 overflow-hidden flex flex-col justify-end p-1 transition-all hover:scale-105 active:scale-95 cursor-pointer ${
                   chatWallpaper === 'lavender' ? 'border-primary shadow-md' : 'border-transparent hover:border-outline-variant'
                 }`}
-                title="Zen Lavender Aura"
+                title="Clock Lavender Aura"
               >
                 <div className="absolute inset-0 bg-[#ecedf6] dark:bg-[#111018]" style={{ backgroundImage: 'radial-gradient(circle at 90% 10%, rgba(139, 92, 246, 0.15) 0%, transparent 60%)' }} />
                 <span className="relative z-10 text-[8px] font-mono leading-none tracking-tight font-semibold text-purple-800 dark:text-purple-300 text-left truncate w-full">Lavender</span>
@@ -2089,7 +2061,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       className="flex items-center gap-2.5 w-full p-2.5 text-left hover:bg-primary/10 rounded-xl text-xs font-body text-on-surface-variant hover:text-primary transition-colors"
                     >
                       <Heart className="w-4 h-4 text-secondary shrink-0 animate-pulse" />
-                      <span>Send Zen Vibe ❤️</span>
+                      <span>Send Clock Vibe ❤️</span>
                     </button>
                     <button
                       onClick={() => {
@@ -2120,7 +2092,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       className="flex items-center gap-2.5 w-full p-2.5 text-left hover:bg-primary/10 rounded-xl text-xs font-body text-on-surface-variant hover:text-primary transition-colors"
                     >
                       <Image className="w-4 h-4 text-primary shrink-0" />
-                      <span>Choose Zen Scene Photo</span>
+                      <span>Choose Clock Scene Photo</span>
                     </button>
                     <button
                       onClick={() => {
@@ -2421,7 +2393,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
         className="hidden" 
       />
 
-      {/* Preset Zen Photos Picker Modal */}
+      {/* Preset Clock Photos Picker Modal */}
       {showPhotoPresetPicker && (
         <div className="fixed inset-0 bg-inverse-surface/40 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in text-on-surface">
           <div className="bg-surface w-full max-w-lg rounded-3xl p-6 shadow-2xl relative border border-outline-variant/30 flex flex-col">
@@ -2431,23 +2403,23 @@ export const ChatView: React.FC<ChatViewProps> = ({
             >
               <X className="w-5 h-5" />
             </button>
-
+ 
             <div className="flex items-center gap-2 mb-4 text-primary">
               <Camera className="w-4 h-4" />
-              <span className="text-xs uppercase font-label tracking-widest font-semibold font-mono">Choose Zen Scene Photo</span>
+              <span className="text-xs uppercase font-label tracking-widest font-semibold font-mono">Choose Clock Scene Photo</span>
             </div>
-
+ 
             <div className="grid grid-cols-2 gap-3 mb-6">
               {[
                 { name: 'Quiet Garden', url: 'https://images.unsplash.com/photo-1545241047-6083a3684587?w=600&auto=format&fit=crop&q=80' },
                 { name: 'Sunset Serenity', url: 'https://images.unsplash.com/photo-150752428034-b723cf961d3e?w=600&auto=format&fit=crop&q=80' },
                 { name: 'Foggy Pines', url: 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=600&auto=format&fit=crop&q=80' },
-                { name: 'Cherry Blossom Zen', url: 'https://images.unsplash.com/photo-1522383225653-ed111181a951?w=600&auto=format&fit=crop&q=80' },
+                { name: 'Cherry Blossom Clock', url: 'https://images.unsplash.com/photo-1522383225653-ed111181a951?w=600&auto=format&fit=crop&q=80' },
               ].map((scene) => (
                 <button
                   key={scene.url}
                   onClick={() => {
-                    onSendMessage(`📷 Preset Zen Picture: ${scene.name}`, {
+                    onSendMessage(`📷 Preset Clock Picture: ${scene.name}`, {
                       type: 'photo',
                       url: scene.url,
                       name: `${scene.name}.jpg`,
@@ -2501,7 +2473,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 <button
                   key={gif.url}
                   onClick={() => {
-                    onSendMessage(`🌸 Zen Animated loop: ${gif.name}`, {
+                    onSendMessage(`🌸 Clock Animated loop: ${gif.name}`, {
                       type: 'gif',
                       url: gif.url,
                       name: `${gif.name.toLowerCase().replace(/ /g, '_')}.gif`,
@@ -2724,7 +2696,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-lg font-mono font-bold text-secondary">{Math.floor(activeSessionTimer / 8)}</span>
-                  <p className="text-[10px] text-outline mt-0.5">Zen Deep Breaths</p>
+                  <p className="text-[10px] text-outline mt-0.5">Clock Deep Breaths</p>
                 </div>
                 <div className="text-right">
                   <span className="text-xs font-semibold text-stone-300">Optimal (5.5s)</span>
@@ -2900,7 +2872,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-lg font-mono font-bold text-secondary">{Math.floor(activeSessionTimer / 8)}</span>
-                  <p className="text-[10px] text-outline mt-0.5">Zen Inhalations</p>
+                  <p className="text-[10px] text-outline mt-0.5">Clock Inhalations</p>
                 </div>
                 <div className="text-right">
                   <span className="text-xs font-semibold text-stone-300 font-mono">5.5s Cycle</span>

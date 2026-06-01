@@ -77,7 +77,7 @@ export interface Comment {
 export interface UserSettings {
   name: string;
   membership: string;
-  zenLevel: number;
+  clockLevel: number;
   avatar: string;
   notifications: string; // 'Smart Alerts', 'Off', 'All'
   themeMode: 'light' | 'dark' | 'sepia' | 'ocean' | 'forest' | 'cosmic' | 'cyberlime' | 'sunset' | 'aurora';

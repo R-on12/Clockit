@@ -19,7 +19,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [tempName, setTempName] = useState(userSettings.name);
   const [tempAvatar, setTempAvatar] = useState(userSettings.avatar);
   const [tempMembership, setTempMembership] = useState(userSettings.membership);
-  const [tempZenLevel, setTempZenLevel] = useState(userSettings.zenLevel);
+  const [tempClockLevel, setTempClockLevel] = useState(userSettings.clockLevel);
   const [successMsg, setSuccessMsg] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const [uploadError, setUploadError] = useState('');
@@ -107,13 +107,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     setTempName(userSettings.name);
     setTempAvatar(userSettings.avatar);
     setTempMembership(userSettings.membership);
-    setTempZenLevel(userSettings.zenLevel);
-  }, [userSettings.name, userSettings.avatar, userSettings.membership, userSettings.zenLevel]);
+    setTempClockLevel(userSettings.clockLevel);
+  }, [userSettings.name, userSettings.avatar, userSettings.membership, userSettings.clockLevel]);
 
   // Privacy states
   const [privacySettings, setPrivacySettings] = useState({
     privateSanctuary: false,
-    publicZenLevel: true,
+    publicClockLevel: true,
     anonymousCircles: false,
     optimization: true
   });
@@ -128,7 +128,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       name: tempName,
       avatar: tempAvatar,
       membership: tempMembership,
-      zenLevel: tempZenLevel
+      clockLevel: tempClockLevel
     });
     setSuccessMsg('Sanctuary settings updated!');
     setTimeout(() => {
@@ -184,7 +184,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </div>
           </div>
           <div className="bg-secondary-container text-on-secondary-container px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-[10px] sm:text-xs font-semibold uppercase tracking-wider font-label shadow-sm self-end sm:self-auto">
-            Zen Level {userSettings.zenLevel}
+            Clock Level {userSettings.clockLevel}
           </div>
         </div>
 
@@ -204,7 +204,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </div>
 
             <div>
-              <label className="text-xs text-outline font-label block mb-2">Preset Zen Avatar</label>
+              <label className="text-xs text-outline font-label block mb-2">Preset Clock Avatar</label>
               <div className="flex gap-3 overflow-x-auto py-2 scrollbar-thin scrollbar-thumb-outline-variant/30 scrollbar-track-transparent">
                 {[
                   { name: 'Classic Portrait', url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDoyaWl51725uwC6lMhOaK-1M9NPiGyMaUVkwLk2kEwMW2qwOzZw69c0PhlQIRB159p-2KQUuJPx2wagma4TziOrBe_sSIN8HuKKMZONsgDfZEQrlDLFO6-_mj205uXzIoo4UaPA6aJjYJQtt-7_L6xAxvAWWq791mVYhQZPEFw3xMoHlIfod_Jh8136RnAAc90bO97692QHKkgZYGJTRQ6qeI6G64FVaHQucqsoe-3o8a8okxigAJ9Wstm2AdaQl8xNWNAW-8Yf7Rg' },
@@ -213,7 +213,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   { name: 'Ocean Wave', url: 'https://images.unsplash.com/photo-1505118380757-91f5f5632de0?auto=format&fit=crop&q=80&w=150' },
                   { name: 'Mountain Peak', url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=150' },
                   { name: 'Cosmic Nebula', url: 'https://images.unsplash.com/photo-1506318137071-a8e063b4bec0?auto=format&fit=crop&q=80&w=150' },
-                  { name: 'Zen Pebble', url: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&q=80&w=150' },
+                  { name: 'Clock Pebble', url: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&q=80&w=150' },
                   { name: 'Misty Meadow', url: 'https://images.unsplash.com/photo-1475113548554-5a36f1f523d6?auto=format&fit=crop&q=80&w=150' },
                   { name: 'Glowing Dunes', url: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&q=80&w=150' },
                   { name: 'Northern Lights', url: 'https://images.unsplash.com/photo-1483347756197-71ef80e95f73?auto=format&fit=crop&q=80&w=150' },
@@ -274,7 +274,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <div>
               <label className="text-xs text-outline font-label block mb-2">Membership Tier</label>
               <div className="grid grid-cols-3 gap-2">
-                {['Standard', 'Premium Member', 'Zen Master'].map((tier) => (
+                {['Standard', 'Premium Member', 'Clock Master'].map((tier) => (
                   <button
                     key={tier}
                     onClick={() => setTempMembership(tier)}
@@ -287,17 +287,17 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </div>
 
             <div>
-              <label className="text-xs text-outline font-label block mb-2">Zen Score Level ({tempZenLevel})</label>
+              <label className="text-xs text-outline font-label block mb-2">Clock Score Level ({tempClockLevel})</label>
               <div className="flex items-center gap-4">
                 <button
-                  onClick={() => setTempZenLevel(Math.max(1, tempZenLevel - 1))}
+                  onClick={() => setTempClockLevel(Math.max(1, tempClockLevel - 1))}
                   className="w-8 h-8 rounded-full bg-surface-container hover:bg-surface-container-high text-on-surface hover:text-primary transition-all flex items-center justify-center font-bold text-sm"
                 >
                   -
                 </button>
-                <span className="font-headline font-bold text-sm sm:text-base w-8 text-center text-on-surface">{tempZenLevel}</span>
+                <span className="font-headline font-bold text-sm sm:text-base w-8 text-center text-on-surface">{tempClockLevel}</span>
                 <button
-                  onClick={() => setTempZenLevel(tempZenLevel + 1)}
+                  onClick={() => setTempClockLevel(tempClockLevel + 1)}
                   className="w-8 h-8 rounded-full bg-surface-container hover:bg-surface-container-high text-on-surface hover:text-primary transition-all flex items-center justify-center font-bold text-sm"
                 >
                   +
@@ -311,7 +311,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   setTempName(userSettings.name);
                   setTempAvatar(userSettings.avatar);
                   setTempMembership(userSettings.membership);
-                  setTempZenLevel(userSettings.zenLevel);
+                  setTempClockLevel(userSettings.clockLevel);
                   setExpandedSection(null);
                 }}
                 className="py-1.5 px-3 hover:bg-surface-container rounded-lg text-xs font-semibold text-outline"
@@ -382,14 +382,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
                   <div className="flex items-center justify-between gap-4">
                     <div>
-                      <div className="font-semibold text-xs sm:text-sm">Publish Zen Level</div>
+                      <div className="font-semibold text-xs sm:text-sm">Publish Clock Level</div>
                       <div className="text-[10px] sm:text-xs text-on-surface-variant">Allow circle members to see your achievements</div>
                     </div>
                     <button
-                      onClick={() => setPrivacySettings(prev => ({ ...prev, publicZenLevel: !prev.publicZenLevel }))}
-                      className={`w-11 h-6 rounded-full transition-colors relative shrink-0 ${privacySettings.publicZenLevel ? 'bg-primary' : 'bg-outline-variant/50'}`}
+                      onClick={() => setPrivacySettings(prev => ({ ...prev, publicClockLevel: !prev.publicClockLevel }))}
+                      className={`w-11 h-6 rounded-full transition-colors relative shrink-0 ${privacySettings.publicClockLevel ? 'bg-primary' : 'bg-outline-variant/50'}`}
                     >
-                      <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${privacySettings.publicZenLevel ? 'translate-x-6' : 'translate-x-1'}`} />
+                      <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${privacySettings.publicClockLevel ? 'translate-x-6' : 'translate-x-1'}`} />
                     </button>
                   </div>
 

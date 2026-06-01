@@ -66,7 +66,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, defaultName }
     setIsLoading(true);
     try {
       const cred = await loginWithGoogle();
-      const fallbackName = cred.user.email ? cred.user.email.split('@')[0] : 'Zen Seeker';
+      const fallbackName = cred.user.email ? cred.user.email.split('@')[0] : 'Clock Seeker';
       onAuthSuccess(cred.user.uid, cred.user.displayName || fallbackName, cred.user.email || '');
     } catch (err: any) {
       console.error("Google login error:", err);

@@ -16,7 +16,7 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
 
   // Separating Featured/Pinned and Recent
-  const featuredIds = ['wellness_guide', 'zen_seekers', 'zenith_community'];
+  const featuredIds = ['wellness_guide', 'clock_seekers', 'clock_community'];
   
   const filteredConversations = conversations.filter(c =>
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||

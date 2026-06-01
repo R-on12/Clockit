@@ -75,7 +75,7 @@ export default function App() {
             name: data.name || 'Anonymous Member',
             avatar: data.avatar || '',
             membership: data.membership || 'Registered Member',
-            zenLevel: data.zenLevel ?? 12
+            clockLevel: data.clockLevel ?? data.zenLevel ?? 12
           });
         }
       });
@@ -136,7 +136,7 @@ export default function App() {
         const loadedSettings = {
           name: nameToUse,
           membership: data.membership || 'Premium Member',
-          zenLevel: data.zenLevel ?? 12,
+          clockLevel: data.clockLevel ?? data.zenLevel ?? 12,
           avatar: data.avatar || initialUserSettings.avatar,
           notifications: data.notifications || 'Smart Alerts',
           themeMode: (data.themeMode as 'light' | 'dark' | 'sepia' | 'ocean' | 'forest' | 'cosmic') || 'light',
@@ -157,7 +157,7 @@ export default function App() {
           uid: uid,
           name: initialName,
           membership: 'Premium Member',
-          zenLevel: 12,
+          clockLevel: 12,
           avatar: initialUserSettings.avatar,
           notifications: 'Smart Alerts',
           themeMode: 'light',
@@ -173,7 +173,7 @@ export default function App() {
         const defaultSettings = {
           name: initialName,
           membership: 'Premium Member',
-          zenLevel: 12,
+          clockLevel: 12,
           avatar: initialUserSettings.avatar,
           notifications: 'Smart Alerts',
           themeMode: 'light',
@@ -463,7 +463,7 @@ export default function App() {
     setUserSettings(prev => {
       const updated = {
         ...prev,
-        zenLevel: prev.zenLevel + 1
+        clockLevel: prev.clockLevel + 1
       };
       localStorage.setItem('clockit_user_settings', JSON.stringify(updated));
 
@@ -481,7 +481,7 @@ export default function App() {
         });
 
         const userDocRef = doc(db, 'users', currentUserUid);
-        setDoc(userDocRef, { uid: currentUserUid, zenLevel: updated.zenLevel }, { merge: true }).catch(err => {
+        setDoc(userDocRef, { uid: currentUserUid, clockLevel: updated.clockLevel }, { merge: true }).catch(err => {
           handleFirestoreError(err, OperationType.UPDATE, `users/${currentUserUid}`);
         });
       }
@@ -500,7 +500,7 @@ export default function App() {
           uid: currentUserUid,
           name: updated.name,
           membership: updated.membership,
-          zenLevel: updated.zenLevel,
+          clockLevel: updated.clockLevel,
           avatar: updated.avatar,
           notifications: updated.notifications,
           themeMode: updated.themeMode,
@@ -972,7 +972,7 @@ export default function App() {
                             {u.name}
                           </div>
                           <div className="text-[10px] text-outline font-mono">
-                            Zen Level {u.zenLevel} • {u.membership}
+                            Clock Level {u.clockLevel ?? u.zenLevel ?? 12} • {u.membership}
                           </div>
                         </div>
                       </div>

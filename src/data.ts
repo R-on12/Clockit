@@ -9,7 +9,7 @@ export const initialVitalState: VitalState = {
 export const initialUserSettings: UserSettings = {
   name: 'Ronnie',
   membership: 'Premium Member',
-  zenLevel: 12,
+  clockLevel: 12,
   avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDoyaWl51725uwC6lMhOaK-1M9NPiGyMaUVkwLk2kEwMW2qwOzZw69c0PhlQIRB159p-2KQUuJPx2wagma4TziOrBe_sSIN8HuKKMZONsgDfZEQrlDLFO6-_mj205uXzIoo4UaPA6aJjYJQtt-7_L6xAxvAWWq791mVYhQZPEFw3xMoHlIfod_Jh8136RnAAc90bO97692QHKkgZYGJTRQ6qeI6G64FVaHQucqsoe-3o8a8okxigAJ9Wstm2AdaQl8xNWNAW-8Yf7Rg',
   notifications: 'Smart Alerts',
   themeMode: 'light',

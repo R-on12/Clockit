@@ -44,6 +44,7 @@ interface AppUser {
   email?: string;
   avatar?: string;
   membership?: string;
+  clockLevel?: number;
   zenLevel?: number;
   lastActive?: string;
 }
@@ -83,6 +84,7 @@ export const AdminView: React.FC = () => {
           email: data.email || `${(data.name || 'user').toLowerCase().replace(/\s+/g, '')}@clockit.com`,
           avatar: data.avatar || '',
           membership: data.membership || 'Standard',
+          clockLevel: data.clockLevel ?? data.zenLevel ?? 12,
           zenLevel: data.zenLevel ?? 12,
           lastActive: data.lastActive || new Date().toISOString()
         });
@@ -148,11 +150,12 @@ export const AdminView: React.FC = () => {
     }
   };
 
-  // Adjust User Zen score directly in DB
-  const handleModifyUserZen = async (userId: string, currentLevel: number, delta: number) => {
+  // Adjust User Clock score directly in DB
+  const handleModifyUserClock = async (userId: string, currentLevel: number, delta: number) => {
     try {
       const userDocRef = doc(db, 'users', userId);
       await updateDoc(userDocRef, {
+        clockLevel: Math.max(1, currentLevel + delta),
         zenLevel: Math.max(1, currentLevel + delta)
       });
     } catch (err) {
@@ -162,7 +165,7 @@ export const AdminView: React.FC = () => {
 
   // Promote User Membership
   const handleModifyUserMembership = async (userId: string, currentTier: string) => {
-    const tiers = ['Standard', 'Premium Member', 'Zen Master'];
+    const tiers = ['Standard', 'Premium Member', 'Clock Master'];
     const currentIndex = tiers.indexOf(currentTier);
     const nextIndex = (currentIndex + 1) % tiers.length;
     const nextTier = tiers[nextIndex];
@@ -274,10 +277,10 @@ export const AdminView: React.FC = () => {
           </div>
           <div className="font-headline text-2xl sm:text-3xl font-black text-on-surface">
             {users.length > 0 
-              ? Math.round(users.reduce((acc, curr) => acc + (curr.zenLevel || 0), 0) / users.length) 
+              ? Math.round(users.reduce((acc, curr) => acc + (curr.clockLevel ?? curr.zenLevel ?? 0), 0) / users.length) 
               : 12}
           </div>
-          <div className="text-[10px] text-secondary mt-1 font-mono">Average Zen Rating</div>
+          <div className="text-[10px] text-secondary mt-1 font-mono">Average Clock Rating</div>
         </div>
       </section>
 
@@ -348,7 +351,7 @@ export const AdminView: React.FC = () => {
                         <th className="py-3 px-2">Member</th>
                         <th className="py-3 px-2">Secure Email</th>
                         <th className="py-3 px-2">Membership Tier</th>
-                        <th className="py-3 px-2 text-center">Zen Alignment</th>
+                        <th className="py-3 px-2 text-center">Clock Alignment</th>
                         <th className="py-3 px-2 text-center">Actions</th>
                       </tr>
                     </thead>
@@ -380,14 +383,14 @@ export const AdminView: React.FC = () => {
                             <td className="py-4 px-2 text-center">
                               <div className="flex items-center justify-center gap-2">
                                 <button 
-                                  onClick={() => handleModifyUserZen(u.id, u.zenLevel || 12, -1)}
+                                  onClick={() => handleModifyUserClock(u.id, u.clockLevel ?? u.zenLevel ?? 12, -1)}
                                   className="w-6 h-6 rounded bg-surface hover:bg-surface-container text-on-surface hover:text-primary transition-all flex items-center justify-center font-bold"
                                 >
                                   -
                                 </button>
-                                <span className="font-mono font-bold w-6">{u.zenLevel}</span>
+                                <span className="font-mono font-bold w-6">{u.clockLevel ?? u.zenLevel ?? 12}</span>
                                 <button 
-                                  onClick={() => handleModifyUserZen(u.id, u.zenLevel || 12, 1)}
+                                  onClick={() => handleModifyUserClock(u.id, u.clockLevel ?? u.zenLevel ?? 12, 1)}
                                   className="w-6 h-6 rounded bg-surface hover:bg-surface-container text-on-surface hover:text-primary transition-all flex items-center justify-center font-bold"
                                 >
                                   +

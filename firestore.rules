@@ -28,6 +28,7 @@ service cloud.firestore {
         && data.name is string
         && data.name.size() <= 100
         && (!('membership' in data) || (data.membership is string && data.membership.size() <= 50))
+        && (!('clockLevel' in data) || (data.clockLevel is number && data.clockLevel >= 0))
         && (!('zenLevel' in data) || (data.zenLevel is number && data.zenLevel >= 0))
         && (!('avatar' in data) || (data.avatar is string && data.avatar.size() <= 1000))
         && (!('notifications' in data) || (data.notifications is string && data.notifications.size() <= 50))
