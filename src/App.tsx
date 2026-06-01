@@ -774,8 +774,9 @@ export default function App() {
               id="header-user-profile-circle"
             >
               <img 
+                key={userSettings.avatar}
                 alt={`${userSettings.name} profile`} 
-                className="w-full h-full object-cover transition-all duration-500 ease-out group-hover:scale-110" 
+                className="w-full h-full object-cover transition-all duration-500 ease-out group-hover:scale-110 animate-fade-in" 
                 src={userSettings.avatar || "https://lh3.googleusercontent.com/aida-public/AB6AXuDoyaWl51725uwC6lMhOaK-1M9NPiGyMaUVkwLk2kEwMW2qwOzZw69c0PhlQIRB159p-2KQUuJPx2wagma4TziOrBe_sSIN8HuKKMZONsgDfZEQrlDLFO6-_mj205uXzIoo4UaPA6aJjYJQtt-7_L6xAxvAWWq791mVYhQZPEFw3xMoHlIfod_Jh8136RnAAc90bO97692QHKkgZYGJTRQ6qeI6G64FVaHQucqsoe-3o8a8okxigAJ9Wstm2AdaQl8xNWNAW-8Yf7Rg"}
                 referrerPolicy="no-referrer"
               />

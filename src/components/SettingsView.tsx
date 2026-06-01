@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Lock, Bell, Palette, HelpCircle, LogOut, ChevronRight, Edit2, CheckCircle } from 'lucide-react';
+import { User, Lock, Bell, Palette, HelpCircle, LogOut, ChevronRight, Edit2, CheckCircle, UploadCloud } from 'lucide-react';
 import { UserSettings } from '../types';
 import { db } from '../firebase';
 import { collection, addDoc } from 'firebase/firestore';
@@ -21,6 +21,86 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [tempMembership, setTempMembership] = useState(userSettings.membership);
   const [tempZenLevel, setTempZenLevel] = useState(userSettings.zenLevel);
   const [successMsg, setSuccessMsg] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+
+  const handleCompressAndSetAvatar = (file: File) => {
+    setUploadError('');
+    if (!file.type.startsWith('image/')) {
+      setUploadError('Please select a valid image (PNG or JPG).');
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 180;
+        const MAX_HEIGHT = 180;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          try {
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            setTempAvatar(dataUrl);
+            onUpdateSettings({ avatar: dataUrl });
+          } catch (err) {
+            setUploadError('Failed to optimize profile picture. Please try another image.');
+            console.error(err);
+          }
+        }
+      };
+      img.onerror = () => {
+        setUploadError('Invalid image file structure.');
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => {
+      setUploadError('Error reading file.');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleCompressAndSetAvatar(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      handleCompressAndSetAvatar(e.target.files[0]);
+    }
+  };
 
   // Sync state if userSettings loaded/updated from outside
   useEffect(() => {
@@ -85,7 +165,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           <div className="flex items-center gap-4 sm:gap-5">
             <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden border-2 border-primary-fixed/60 relative shrink-0">
               <img
-                className="w-full h-full object-cover"
+                key={userSettings.avatar}
+                id="settings-profile-quick-avatar"
+                className="w-full h-full object-cover transition-all duration-500 ease-out animate-fade-in hover:scale-105"
                 alt={`${userSettings.name} Studio Portrait`}
                 src={userSettings.avatar || "https://lh3.googleusercontent.com/aida-public/AB6AXuDoyaWl51725uwC6lMhOaK-1M9NPiGyMaUVkwLk2kEwMW2qwOzZw69c0PhlQIRB159p-2KQUuJPx2wagma4TziOrBe_sSIN8HuKKMZONsgDfZEQrlDLFO6-_mj205uXzIoo4UaPA6aJjYJQtt-7_L6xAxvAWWq791mVYhQZPEFw3xMoHlIfod_Jh8136RnAAc90bO97692QHKkgZYGJTRQ6qeI6G64FVaHQucqsoe-3o8a8okxigAJ9Wstm2AdaQl8xNWNAW-8Yf7Rg"}
                 referrerPolicy="no-referrer"
@@ -143,6 +225,42 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   </button>
                 ))}
               </div>
+            </div>
+
+            <div>
+              <label className="text-xs text-outline font-label block mb-1.5">Or Upload Custom Portrait</label>
+              <div 
+                id="settings-avatar-drop-zone"
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onClick={() => document.getElementById('settings-avatar-file-input')?.click()}
+                className={`border-2 border-dashed rounded-2xl p-4 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2 ${
+                  isDragging 
+                    ? 'border-primary bg-primary/10 scale-[1.01]' 
+                    : 'border-outline-variant/30 hover:border-primary/50 bg-surface hover:bg-surface-container-low/30'
+                }`}
+              >
+                <input 
+                  type="file" 
+                  id="settings-avatar-file-input" 
+                  accept="image/*" 
+                  className="hidden" 
+                  onChange={handleFileChange}
+                />
+                <UploadCloud className="w-6 h-6 text-primary stroke-[1.8]" />
+                <div className="text-xs font-semibold text-on-surface">
+                  Drag & drop picture here, or <span className="text-primary underline">browse files</span>
+                </div>
+                <div className="text-[10px] text-outline font-mono">
+                  Supports JPEG, PNG. Automatically optimized for your profile.
+                </div>
+              </div>
+              {uploadError && (
+                <p className="text-[10px] text-red-500 font-bold mt-1.5 flex items-center gap-1">
+                  <span>⚠️</span> {uploadError}
+                </p>
+              )}
             </div>
 
             <div>
