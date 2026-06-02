@@ -29,6 +29,7 @@ interface StoryMoment {
   quote: string;
   viewed: boolean;
   topic: string;
+  type?: 'image' | 'video';
 }
 
 // Trending topics data (X style)
@@ -130,9 +131,9 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
   // Custom OneDrive mock files for selection
   const [oneDriveFiles, setOneDriveFiles] = useState<Array<{ id: string; name: string; url: string; size: string; type: 'image' | 'video' }>>([
     { id: 'od_f1', name: 'Ambient Forest Dawn.jpg', url: 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=800&q=80', size: '2.4 MB', type: 'image' },
-    { id: 'od_f2', name: 'Prismatic Mirror Reflection.jpg', url: 'https://images.unsplash.com/photo-1518156677180-95a2893f3e9f?auto=format&fit=crop&w=800&q=80', size: '1.8 MB', type: 'image' },
+    { id: 'od_f2', name: 'Wind Chimes Meditation.mp4', url: 'https://assets.mixkit.co/videos/preview/mixkit-wind-chimes-hanging-from-a-tree-in-the-wind-41662-large.mp4', size: '12.8 MB', type: 'video' },
     { id: 'od_f3', name: 'Quiet Sea Solitude.png', url: 'https://images.unsplash.com/photo-150752428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80', size: '3.1 MB', type: 'image' },
-    { id: 'od_f4', name: 'Cherry Blossom Zen Garden.jpg', url: 'https://images.unsplash.com/photo-1522383225653-ed111181a951?auto=format&fit=crop&w=800&q=80', size: '1.5 MB', type: 'image' }
+    { id: 'od_v1', name: 'Deep Valley Mist Flow.mp4', url: 'https://assets.mixkit.co/videos/preview/mixkit-foggy-pine-tree-forest-4112-large.mp4', size: '18.4 MB', type: 'video' }
   ]);
   
   // Bookmarked posts list
@@ -351,13 +352,14 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
     reader.onload = () => {
       const dataUrl = reader.result as string;
       setDeviceImagePreview(dataUrl);
+      const isVideo = file.type.startsWith('video') || file.name.endsWith('.mp4') || file.name.endsWith('.mov') || file.name.endsWith('.avi') || file.name.endsWith('.webm');
       
       // Auto-attach as custom attached media
       setAttachedMedia({
         id: `custom_${Date.now()}`,
         title: file.name,
         url: dataUrl,
-        type: 'image'
+        type: isVideo ? 'video' as const : 'image' as const
       });
       setOneDriveToast(`Loaded: ${file.name}`);
       setTimeout(() => setOneDriveToast(null), 3000);
@@ -369,6 +371,8 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
     if (!file) return;
     setIsOneDriveSyncing(true);
     setOneDriveUploadProgress(10);
+    
+    const isVideo = file.type.startsWith('video') || file.name.endsWith('.mp4') || file.name.endsWith('.mov') || file.name.endsWith('.avi') || file.name.endsWith('.webm');
     
     let progress = 10;
     const interval = setInterval(() => {
@@ -388,7 +392,7 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
             name: file.name,
             url: dataUrl,
             size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
-            type: 'image' as const
+            type: isVideo ? 'video' as const : 'image' as const
           };
           
           setOneDriveFiles(prev => [newOneDriveFile, ...prev]);
@@ -397,7 +401,7 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
             id: newOneDriveFile.id,
             title: `OneDrive: ${newOneDriveFile.name}`,
             url: newOneDriveFile.url,
-            type: 'image'
+            type: isVideo ? 'video' as const : 'image' as const
           });
           setOneDriveToast(`Successfully synced "${file.name}" to OneDrive!`);
           setTimeout(() => setOneDriveToast(null), 4000);
@@ -421,7 +425,7 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
 
   const handlePublishMoment = () => {
     if (!momentPreview) {
-      setOneDriveToast("Please select or capture a picture first!");
+      setOneDriveToast("Please select or capture a visual first!");
       setTimeout(() => setOneDriveToast(null), 3500);
       return;
     }
@@ -442,9 +446,10 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
     setTimeout(() => {
       const targetCircleId = activeCircleId || 'seekers_circle';
       const promptCaption = momentCaption.trim() || 'A peaceful capture of today’s quiet moment. 🌅';
+      const isVideo = momentFile ? (momentFile.type.startsWith('video') || momentFile.name.endsWith('.mp4') || momentFile.name.endsWith('.mov') || momentFile.name.endsWith('.avi') || momentFile.name.endsWith('.webm')) : (momentPreview.startsWith('data:video') || momentPreview.includes('.mp4'));
       
       // 1. Publish directly as a post in the active circle timeline
-      onAddPost(targetCircleId, promptCaption, momentPreview, 'image');
+      onAddPost(targetCircleId, promptCaption, momentPreview, isVideo ? 'video' : 'image');
 
       // 2. Also inject into story bubble list at the top bar
       const newStory: StoryMoment = {
@@ -454,7 +459,8 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
         mediaUrl: momentPreview,
         quote: promptCaption,
         viewed: false,
-        topic: 'Custom Moment'
+        topic: 'Custom Moment',
+        type: isVideo ? 'video' as const : 'image' as const
       };
       setStories(prev => [newStory, ...prev]);
 
@@ -777,7 +783,7 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
                           className="flex-1 py-1.5 px-3 bg-pink-500/10 hover:bg-pink-500/20 text-pink-500 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                         >
                           <ImageIcon className="w-3.5 h-3.5 animate-bounce" />
-                          <span>Browse Device Photo</span>
+                          <span>Browse Photos & Videos</span>
                         </button>
                         
                         {/* 2. OneDrive Connect & Upload Portal */}
@@ -794,10 +800,16 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
                       {deviceImagePreview && (
                         <div className="p-3 bg-stone-950/40 rounded-xl flex items-center justify-between border border-outline-variant/10">
                           <div className="flex items-center gap-2 overflow-hidden">
-                            <img src={deviceImagePreview} className="w-10 h-10 object-cover rounded-md" alt="Preview custom image" />
+                            {attachedMedia?.type === 'video' || deviceImageFile?.type.startsWith('video') || deviceImagePreview.startsWith('data:video') || deviceImagePreview.includes('.mp4') ? (
+                              <video src={deviceImagePreview} className="w-10 h-10 object-cover rounded-md bg-stone-900" muted playsInline />
+                            ) : (
+                              <img src={deviceImagePreview} className="w-10 h-10 object-cover rounded-md" alt="Preview custom image" />
+                            )}
                             <div className="text-xs truncate">
                               <span className="font-semibold block text-on-surface truncate">{deviceImageFile?.name || "device_pic.jpg"}</span>
-                              <span className="text-[10px] text-outline">Attached local picture</span>
+                              <span className="text-[10px] text-outline">
+                                {attachedMedia?.type === 'video' ? 'Attached local video' : 'Attached local picture'}
+                              </span>
                             </div>
                           </div>
                           <div className="flex gap-2">
@@ -912,7 +924,19 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
                         {/* Render Attached Backdrops (X / Instagram style image/video block) */}
                         {post.mediaUrl && (
                           <div className="mt-4 rounded-2xl overflow-hidden relative border border-outline-variant/10 shadow-sm group-has-[video]/media">
-                            <img src={post.mediaUrl} className="w-full max-h-80 object-cover" alt="Attached alignment visual card" />
+                            {post.mediaType === 'video' && isPlaying ? (
+                              <video 
+                                src={post.mediaUrl} 
+                                className="w-full max-h-80 object-cover bg-stone-950" 
+                                autoPlay 
+                                loop 
+                                muted 
+                                playsInline 
+                                controls={true}
+                              />
+                            ) : (
+                              <img src={post.mediaUrl} className="w-full max-h-80 object-cover" alt="Attached alignment visual card" />
+                            )}
                             
                             {/* VIDEO PLAYER OVERLAY (Simulating playable relaxation video sessions!) */}
                             {post.mediaType === 'video' ? (
@@ -1419,9 +1443,20 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
                 </div>
               </div>
 
-              {/* BACKGROUND IMAGE FILL FOR INSTAGRAM FEEL */}
-              <div className="absolute inset-0 z-0">
-                <img src={stories[activeStoryIdx].mediaUrl} className="w-full h-full object-cover opacity-60" alt="Story visual backdrop" />
+              {/* BACKGROUND VISUAL FILL FOR INSTAGRAM FEEL */}
+              <div className="absolute inset-0 z-0 bg-stone-950">
+                {stories[activeStoryIdx].type === 'video' || stories[activeStoryIdx].mediaUrl.includes('.mp4') || stories[activeStoryIdx].mediaUrl.startsWith('data:video') ? (
+                  <video 
+                    src={stories[activeStoryIdx].mediaUrl} 
+                    className="w-full h-full object-cover opacity-65 font-sans" 
+                    autoPlay 
+                    loop 
+                    muted 
+                    playsInline 
+                  />
+                ) : (
+                  <img src={stories[activeStoryIdx].mediaUrl} className="w-full h-full object-cover opacity-60" alt="Story visual backdrop" />
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/80"></div>
               </div>
 
@@ -1583,7 +1618,11 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
                   {deviceImageFile && (
                     <div className="bg-stone-950 p-3 rounded-xl border border-stone-800 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2 overflow-hidden">
-                        <img src={deviceImagePreview || ''} className="w-10 h-10 rounded object-cover flex-shrink-0" alt="Preview device" />
+                        {deviceImageFile.type.startsWith('video') || deviceImagePreview?.startsWith('data:video') ? (
+                          <video src={deviceImagePreview || ''} className="w-10 h-10 rounded object-cover flex-shrink-0 bg-stone-900" muted playsInline />
+                        ) : (
+                          <img src={deviceImagePreview || ''} className="w-10 h-10 rounded object-cover flex-shrink-0" alt="Preview device" />
+                        )}
                         <div className="overflow-hidden">
                           <div className="text-xs font-semibold truncate text-white">{deviceImageFile.name}</div>
                           <div className="text-[10px] text-stone-500">{(deviceImageFile.size / 1024).toFixed(0)} KB • Ready</div>
@@ -1619,7 +1658,7 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
                 {/* 3. Browse Online Storage section */}
                 <div className="space-y-2">
                   <div className="text-xs font-bold text-stone-400 uppercase tracking-wider flex items-center justify-between">
-                    <span>OneDrive Cloud Photos (/Pictures/)</span>
+                    <span>OneDrive Cloud Directory (/Pictures & Videos/)</span>
                     <span className="text-[10px] font-mono text-stone-500">{oneDriveFiles.length} files available</span>
                   </div>
 
@@ -1631,7 +1670,16 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
                           className="bg-stone-950 rounded-xl border border-stone-800 p-2 flex flex-col justify-between group hover:border-blue-500/40 transition-colors"
                         >
                           <div className="relative aspect-video rounded-lg overflow-hidden bg-black/10 mb-2">
-                            <img src={file.url} className="w-full h-full object-cover" alt={file.name} referrerPolicy="no-referrer" />
+                            {file.type === 'video' ? (
+                              <div className="relative w-full h-full">
+                                <video src={file.url} className="w-full h-full object-cover" muted playsInline />
+                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                  <span className="text-white text-[9px] bg-blue-500/80 px-1.5 py-0.5 rounded flex items-center gap-1 font-bold">🎥 VIDEO</span>
+                                </div>
+                              </div>
+                            ) : (
+                              <img src={file.url} className="w-full h-full object-cover" alt={file.name} referrerPolicy="no-referrer" />
+                            )}
                             <span className="absolute bottom-1 right-1 bg-black/60 text-[8px] text-white px-1 py-0.5 rounded leading-none">
                               {file.size}
                             </span>
@@ -1646,7 +1694,7 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
                                   id: file.id,
                                   title: `OneDrive: ${file.name}`,
                                   url: file.url,
-                                  type: 'image'
+                                  type: file.type === 'video' ? 'video' as const : 'image' as const
                                 });
                                 setShowOneDriveModal(false);
                                 setOneDriveToast(`Attached: ${file.name}`);
@@ -1654,7 +1702,7 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
                               }}
                               className="w-full py-1.5 bg-blue-500/10 hover:bg-blue-500 text-blue-400 hover:text-white rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer text-center block"
                             >
-                              Attach Cloud Image
+                              {file.type === 'video' ? "Attach Cloud Video" : "Attach Cloud Image"}
                             </button>
                           </div>
                         </div>
@@ -1699,7 +1747,7 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
         type="file" 
         ref={momentFileInputRef} 
         onChange={handleMomentFileChange} 
-        accept="image/*" 
+        accept="image/*,video/*" 
         className="hidden" 
       />
 
@@ -1735,19 +1783,23 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
                 {/* Visual Attachment Preview Block */}
                 {momentPreview ? (
                   <div className="relative aspect-video rounded-2xl overflow-hidden border border-stone-800 bg-stone-950 flex items-center justify-center group shadow-inner">
-                    <img src={momentPreview} className="w-full h-full object-cover" alt="Moment picture to share" />
+                    {momentFile?.type.startsWith('video') || momentPreview.includes('.mp4') || momentPreview.startsWith('data:video') ? (
+                      <video src={momentPreview} className="w-full h-full object-cover" controls muted playsInline />
+                    ) : (
+                      <img src={momentPreview} className="w-full h-full object-cover" alt="Moment picture to share" />
+                    )}
                     <button
                       onClick={() => {
                         setMomentPreview(null);
                         setMomentFile(null);
                       }}
                       className="absolute top-2 right-2 p-1.5 bg-black/65 hover:bg-black/95 rounded-full text-white text-xs font-bold leading-none backdrop-blur-sm"
-                      title="Remove image"
+                      title="Remove media"
                     >
                       ✕
                     </button>
                     <span className="absolute bottom-2 left-2 bg-pink-500 text-white text-[9px] font-bold uppercase tracking-wider py-1 px-2.5 rounded-full shadow-md">
-                      Picture Selected
+                      {momentFile?.type.startsWith('video') || momentPreview.includes('.mp4') || momentPreview.startsWith('data:video') ? 'Video Selected' : 'Picture Selected'}
                     </span>
                   </div>
                 ) : (
@@ -1759,7 +1811,7 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
                     >
                       <ImageIcon className="w-6 h-6 text-pink-500 group-hover:animate-bounce" />
                       <div className="text-[10px] font-bold uppercase text-stone-300">Browse Device File</div>
-                      <p className="text-[9px] text-stone-500">JPG, PNG, GIF, WebP</p>
+                      <p className="text-[9px] text-stone-500">Photos & Videos (MP4, PNG, etc.)</p>
                     </button>
 
                     {/* Choose OneDrive Cloud files directly inside modal! */}
@@ -1771,9 +1823,10 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
                           setOneDriveToast("OneDrive logged in as coopedill@gmail.com!");
                           setTimeout(() => setOneDriveToast(null), 3000);
                         }
-                        // Use a random OneDrive photo as a nice preset
+                        // Use a random OneDrive photo or video as a nice preset
                         const randomOdFile = oneDriveFiles[Math.floor(Math.random() * oneDriveFiles.length)];
                         setMomentPreview(randomOdFile.url);
+                        setMomentFile(randomOdFile.type === 'video' ? new File([], randomOdFile.name, { type: 'video/mp4' }) : null);
                         setOneDriveToast(`Imported "${randomOdFile.name}" from OneDrive!`);
                         setTimeout(() => setOneDriveToast(null), 3500);
                       }}
@@ -1781,7 +1834,7 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
                     >
                       <Globe className="w-6 h-6 text-blue-400 group-hover:rotate-12 transition-transform" />
                       <div className="text-[10px] font-bold uppercase text-stone-300">OneDrive Cloud</div>
-                      <p className="text-[9px] text-stone-500">Pick online cloud photos</p>
+                      <p className="text-[9px] text-stone-500">Pick cloud photos & videos</p>
                     </button>
                   </div>
                 )}
