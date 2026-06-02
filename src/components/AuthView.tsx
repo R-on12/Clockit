@@ -81,7 +81,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, defaultName }
   const fillDemoCredentials = () => {
     setEmail('name@gmail.com');
     setPassword('centeredposture2026');
-    setName('Coopedill');
+    setName('Jack');
   };
 
   return (
@@ -155,7 +155,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, defaultName }
                 <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
                 <input
                   type="text"
-                  placeholder="Coopedill"
+                  placeholder="Jack"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full bg-surface-container-low border border-outline-variant/15 hover:border-outline-variant/40 rounded-xl py-3 pl-11 pr-4 text-sm font-body focus:outline-none focus:ring-1 focus:ring-primary text-on-surface"
