@@ -110,6 +110,15 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [deviceImageFile, setDeviceImageFile] = useState<File | null>(null);
   const [deviceImagePreview, setDeviceImagePreview] = useState<string | null>(null);
+
+  // Permissive Story & Moment Creator states
+  const [showMomentCreator, setShowMomentCreator] = useState(false);
+  const [momentCaption, setMomentCaption] = useState('');
+  const [momentPreview, setMomentPreview] = useState<string | null>(null);
+  const [momentFile, setMomentFile] = useState<File | null>(null);
+  const [isPublishingMoment, setIsPublishingMoment] = useState(false);
+  const [momentPublishProgress, setMomentPublishProgress] = useState(0);
+  const momentFileInputRef = useRef<HTMLInputElement>(null);
   
   // OneDrive simulated cloud storage states
   const [showOneDriveModal, setShowOneDriveModal] = useState(false);
@@ -398,6 +407,68 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
     }, 150);
   };
 
+  const handleMomentFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setMomentFile(file);
+    const reader = new FileReader();
+    reader.onload = () => {
+      setMomentPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handlePublishMoment = () => {
+    if (!momentPreview) {
+      setOneDriveToast("Please select or capture a picture first!");
+      setTimeout(() => setOneDriveToast(null), 3500);
+      return;
+    }
+
+    setIsPublishingMoment(true);
+    setMomentPublishProgress(20);
+
+    let progress = 20;
+    const interval = setInterval(() => {
+      progress += 25;
+      if (progress >= 100) {
+        progress = 100;
+        clearInterval(interval);
+      }
+      setMomentPublishProgress(progress);
+    }, 120);
+
+    setTimeout(() => {
+      const targetCircleId = activeCircleId || 'seekers_circle';
+      const promptCaption = momentCaption.trim() || 'A peaceful capture of today’s quiet moment. 🌅';
+      
+      // 1. Publish directly as a post in the active circle timeline
+      onAddPost(targetCircleId, promptCaption, momentPreview, 'image');
+
+      // 2. Also inject into story bubble list at the top bar
+      const newStory: StoryMoment = {
+        id: `story_${Date.now()}`,
+        userName: 'You',
+        userAvatar: userAvatar,
+        mediaUrl: momentPreview,
+        quote: promptCaption,
+        viewed: false,
+        topic: 'Custom Moment'
+      };
+      setStories(prev => [newStory, ...prev]);
+
+      // Reset states
+      setIsPublishingMoment(false);
+      setMomentCaption('');
+      setMomentPreview(null);
+      setMomentFile(null);
+      setShowMomentCreator(false);
+      setOneDriveToast("Successfully shared new Moment to your timeline and story feed!");
+      setTimeout(() => setOneDriveToast(null), 4000);
+    }, 850);
+  };
+
   // Human-friendly location simulator
   const getSanctuaryLocation = (uid: string, name: string) => {
     const sum = (uid || name || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -483,11 +554,14 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
       <section className="bg-surface-container-low rounded-3xl p-4 border border-outline-variant/10 shadow-[0_4px_30px_rgba(0,0,0,0.01)]">
         <div className="flex gap-4 overflow-x-auto pb-1 hide-scrollbar touch-pan-x items-center">
           {/* Your own Story Anchor */}
-          <div className="flex flex-col items-center flex-shrink-0 cursor-pointer group" onClick={() => setShowMediaAttachmentDrawer(true)}>
+          <div 
+            className="flex flex-col items-center flex-shrink-0 cursor-pointer group relative transition-all duration-300 hover:scale-105 active:scale-95" 
+            onClick={() => setShowMomentCreator(true)}
+          >
             <div className="relative w-14 h-14 rounded-full p-[2px] border-2 border-dashed border-pink-400 flex items-center justify-center transition-all group-hover:rotate-45">
-              <img src={userAvatar} className="w-11 h-11 rounded-full object-cover" alt="User profile" />
-              <div className="absolute -bottom-1 -right-1 bg-pink-500 rounded-full p-1 text-white shadow-md">
-                <Plus className="w-3 h-3" />
+              <img src={userAvatar} className="w-11 h-11 rounded-full object-cover animate-pulse" alt="User profile" />
+              <div className="absolute -bottom-1 -right-1 bg-gradient-to-tr from-pink-500 via-rose-500 to-amber-400 rounded-full p-1 text-white shadow-[0_0_15px_rgba(236,72,153,0.8)] border border-white/30 animate-pulse group-hover:scale-110 active:scale-90 transition-all duration-300">
+                <Plus className="w-3.5 h-3.5 font-bold" />
               </div>
             </div>
             <span className="text-[10px] mt-1.5 font-bold font-label text-outline group-hover:text-pink-500 transition-colors">Moment</span>
@@ -1614,6 +1688,155 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
 
               <div className="pt-4 border-t border-stone-800 text-[10px] text-stone-600 text-center uppercase tracking-widest font-mono">
                 Microsoft Graph Secure API Connected
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Hidden standard HTML file input for Moment Creator */}
+      <input 
+        type="file" 
+        ref={momentFileInputRef} 
+        onChange={handleMomentFileChange} 
+        accept="image/*" 
+        className="hidden" 
+      />
+
+      {/* 📸 PERMISSIVE WELLNESS MOMENT CREATOR MODAL */}
+      <AnimatePresence>
+        {showMomentCreator && (
+          <div className="fixed inset-0 bg-stone-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-stone-900 border border-stone-800 text-white w-full max-w-md rounded-3xl p-6 shadow-2xl flex flex-col justify-between"
+            >
+              <div className="flex justify-between items-center pb-4 border-b border-stone-800">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-pink-500 animate-pulse" />
+                  <h3 className="font-headline font-black text-xs tracking-widest uppercase text-pink-400">Share a Live Moment</h3>
+                </div>
+                <button 
+                  onClick={() => {
+                    setShowMomentCreator(false);
+                    setMomentCaption('');
+                    setMomentPreview(null);
+                    setMomentFile(null);
+                  }}
+                  className="p-1.5 px-3 bg-stone-800 hover:bg-stone-700 rounded-full text-xs font-bold leading-none cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="py-4 space-y-4">
+                {/* Visual Attachment Preview Block */}
+                {momentPreview ? (
+                  <div className="relative aspect-video rounded-2xl overflow-hidden border border-stone-800 bg-stone-950 flex items-center justify-center group shadow-inner">
+                    <img src={momentPreview} className="w-full h-full object-cover" alt="Moment picture to share" />
+                    <button
+                      onClick={() => {
+                        setMomentPreview(null);
+                        setMomentFile(null);
+                      }}
+                      className="absolute top-2 right-2 p-1.5 bg-black/65 hover:bg-black/95 rounded-full text-white text-xs font-bold leading-none backdrop-blur-sm"
+                      title="Remove image"
+                    >
+                      ✕
+                    </button>
+                    <span className="absolute bottom-2 left-2 bg-pink-500 text-white text-[9px] font-bold uppercase tracking-wider py-1 px-2.5 rounded-full shadow-md">
+                      Picture Selected
+                    </span>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Pick from Device */}
+                    <button
+                      onClick={() => momentFileInputRef.current?.click()}
+                      className="aspect-video bg-stone-950 hover:bg-stone-950/80 rounded-2xl border-2 border-dashed border-stone-800 hover:border-pink-500/40 transition-colors flex flex-col items-center justify-center p-3 text-center gap-1.5 cursor-pointer group"
+                    >
+                      <ImageIcon className="w-6 h-6 text-pink-500 group-hover:animate-bounce" />
+                      <div className="text-[10px] font-bold uppercase text-stone-300">Browse Device File</div>
+                      <p className="text-[9px] text-stone-500">JPG, PNG, GIF, WebP</p>
+                    </button>
+
+                    {/* Choose OneDrive Cloud files directly inside modal! */}
+                    <button
+                      onClick={() => {
+                        if (!isOneDriveConnected) {
+                          // Connect OneDrive instantly with feedback and then show the files
+                          setIsOneDriveConnected(true);
+                          setOneDriveToast("OneDrive logged in as coopedill@gmail.com!");
+                          setTimeout(() => setOneDriveToast(null), 3000);
+                        }
+                        // Use a random OneDrive photo as a nice preset
+                        const randomOdFile = oneDriveFiles[Math.floor(Math.random() * oneDriveFiles.length)];
+                        setMomentPreview(randomOdFile.url);
+                        setOneDriveToast(`Imported "${randomOdFile.name}" from OneDrive!`);
+                        setTimeout(() => setOneDriveToast(null), 3500);
+                      }}
+                      className="aspect-video bg-stone-950 hover:bg-stone-950/80 rounded-2xl border-2 border-dashed border-stone-800 hover:border-blue-500/40 transition-colors flex flex-col items-center justify-center p-3 text-center gap-1.5 cursor-pointer group"
+                    >
+                      <Globe className="w-6 h-6 text-blue-400 group-hover:rotate-12 transition-transform" />
+                      <div className="text-[10px] font-bold uppercase text-stone-300">OneDrive Cloud</div>
+                      <p className="text-[9px] text-stone-500">Pick online cloud photos</p>
+                    </button>
+                  </div>
+                )}
+
+                {/* Caption / Inspiration Text Area */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] uppercase font-bold text-stone-400 tracking-wider block">Add a story or caption</label>
+                  <textarea
+                    value={momentCaption}
+                    onChange={(e) => setMomentCaption(e.target.value)}
+                    placeholder="Type a thoughtful caption, mindfulness quote or deep pause reflection..."
+                    rows={3}
+                    className="w-full bg-stone-950 border border-stone-800 focus:border-pink-500/40 rounded-2xl p-3 text-xs outline-none focus:ring-0 text-white placeholder:text-stone-600 resize-none"
+                  />
+                </div>
+
+                {/* Show simulation progress */}
+                {isPublishingMoment && (
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex justify-between text-[10px] text-pink-400 font-bold uppercase">
+                      <span>Publishing live to your active Timeline and Stories...</span>
+                      <span>{momentPublishProgress}%</span>
+                    </div>
+                    <div className="h-1.5 bg-pink-500/10 rounded-full overflow-hidden">
+                      <div 
+                        className="bg-pink-500 h-full transition-all duration-200"
+                        style={{ width: `${momentPublishProgress}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-4 border-t border-stone-800 flex gap-2">
+                <button
+                  onClick={() => {
+                    setShowMomentCreator(false);
+                    setMomentCaption('');
+                    setMomentPreview(null);
+                    setMomentFile(null);
+                  }}
+                  className="flex-1 py-2 px-4 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded-xl text-xs font-bold uppercase transition-all cursor-pointer"
+                  disabled={isPublishingMoment}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handlePublishMoment}
+                  className="flex-1 py-1.5 px-3 bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white rounded-xl text-xs font-bold uppercase transition-all shadow-md shadow-pink-500/20 flex items-center justify-center gap-1.5 cursor-pointer"
+                  disabled={isPublishingMoment}
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>Publish Moment</span>
+                </button>
               </div>
             </motion.div>
           </div>
