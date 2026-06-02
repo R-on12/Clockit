@@ -79,9 +79,9 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, defaultName }
   };
 
   const fillDemoCredentials = () => {
-    setEmail('ronnie@clockit.io');
+    setEmail('name@gmail.com');
     setPassword('centeredposture2026');
-    setName('Ronnie');
+    setName('Coopedill');
   };
 
   return (
@@ -155,7 +155,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, defaultName }
                 <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
                 <input
                   type="text"
-                  placeholder="Ronnie"
+                  placeholder="Coopedill"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full bg-surface-container-low border border-outline-variant/15 hover:border-outline-variant/40 rounded-xl py-3 pl-11 pr-4 text-sm font-body focus:outline-none focus:ring-1 focus:ring-primary text-on-surface"
@@ -170,10 +170,11 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, defaultName }
               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
               <input
                 type="email"
-                placeholder="ronnie@clockit.io"
+                placeholder="name@gmail.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full bg-surface-container-low border border-outline-variant/15 hover:border-outline-variant/40 rounded-xl py-3 pl-11 pr-4 text-sm font-body focus:outline-none focus:ring-1 focus:ring-primary text-on-surface"
+                id="auth-email-input-field"
               />
             </div>
           </div>
@@ -263,7 +264,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, defaultName }
             className="inline-flex items-center gap-2 px-4 py-2 bg-primary/5 hover:bg-primary/10 border border-primary/10 rounded-full text-xs font-bold text-primary font-label transition-colors"
           >
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Autofill Ronnie's Demo Key</span>
+            <span>Autofill Demo Credentials</span>
           </button>
         </div>
 
