@@ -37,6 +37,7 @@ import { db, auth, logoutUser, handleFirestoreError, OperationType } from './fir
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [currentUserUid, setCurrentUserUid] = useState<string | null>(null);
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   const [currentTab, setCurrentTab] = useState<string>('home');
   const [conversations, setConversations] = useState<Conversation[]>(initialConversations);
   const [circles, setCircles] = useState<CommunityCircle[]>(initialCircles);
@@ -107,10 +108,12 @@ export default function App() {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setCurrentUserUid(user.uid);
+        setCurrentUserEmail(user.email || null);
         setIsLoggedIn(true);
         await loadOrCreateUser(user.uid, user.displayName || 'Ronnie');
       } else {
         setCurrentUserUid(null);
+        setCurrentUserEmail(null);
         setIsLoggedIn(false);
       }
     });
@@ -796,18 +799,20 @@ export default function App() {
             <span className="text-xl font-headline tracking-tight text-primary font-bold">Clockit</span>
           </div>
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setCurrentTab('admin')}
-              className={`w-10 h-10 flex items-center justify-center rounded-full border transition-all ${
-                currentTab === 'admin' 
-                  ? 'bg-primary border-primary text-on-primary shadow-md' 
-                  : 'bg-surface-container/25 border-outline-variant/30 text-primary hover:bg-primary/10 hover:border-primary/50'
-              }`}
-              title="Admin Control Center"
-              id="header-admin-portal-launcher"
-            >
-              <Shield className="w-5 h-5 fill-current/10" />
-            </button>
+            {currentUserEmail === 'coopedill@gmail.com' && (
+              <button
+                onClick={() => setCurrentTab('admin')}
+                className={`w-10 h-10 flex items-center justify-center rounded-full border transition-all ${
+                  currentTab === 'admin' 
+                    ? 'bg-primary border-primary text-on-primary shadow-md' 
+                    : 'bg-surface-container/25 border-outline-variant/30 text-primary hover:bg-primary/10 hover:border-primary/50'
+                }`}
+                title="Admin Control Center"
+                id="header-admin-portal-launcher"
+              >
+                <Shield className="w-5 h-5 fill-current/10" />
+              </button>
+            )}
             <div 
               onClick={() => setCurrentTab('settings')}
               className="w-10 h-10 rounded-full overflow-hidden bg-surface-container-highest border border-outline-variant cursor-pointer group hover:scale-105 transition-all shadow-sm"
@@ -872,7 +877,7 @@ export default function App() {
           />
         )}
 
-        {currentTab === 'admin' && (
+        {currentTab === 'admin' && currentUserEmail === 'coopedill@gmail.com' && (
           <AdminView />
         )}
 
