@@ -130,8 +130,8 @@ export default function App() {
         let nameToUse = data.name || initialName;
         let shouldUpdateDoc = false;
 
-        // Correct race conditions where the Firestore doc was pre-maturely auto-created as 'Ronnie'
-        if ((data.name === 'Ronnie' || !data.name) && initialName && initialName !== 'Ronnie') {
+        // Correct race conditions where the Firestore doc was pre-maturely auto-created as 'Ronnie' or 'Jack'
+        if ((data.name === 'Ronnie' || data.name === 'Jack' || !data.name) && initialName && initialName !== 'Ronnie' && initialName !== 'Jack') {
           nameToUse = initialName;
           shouldUpdateDoc = true;
         }

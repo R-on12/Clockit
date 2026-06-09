@@ -634,7 +634,7 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
             }`}
           >
             <Users className="w-4 h-4 text-pink-500" />
-            <span>Registry</span>
+            <span>Members Directory</span>
           </button>
         </div>
 
