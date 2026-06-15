@@ -104,7 +104,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, defaultName }
           </div>
           <h1 className="text-3xl font-headline font-extrabold text-primary tracking-tight">Clockit</h1>
           <p className="mt-2 text-xs text-on-surface-variant font-body max-w-[280px] mx-auto leading-relaxed">
-            Your mindful wellness sanctuary. Align your daily diurnal posture with stillness.
+            A vibe to connection
           </p>
         </div>
 
