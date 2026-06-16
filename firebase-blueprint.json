@@ -86,12 +86,34 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "conversationId", "senderId", "senderName", "text", "isUser"]
+    },
+    "Friendship": {
+      "title": "Friendship",
+      "description": "A friend request or established friendship relationship between two users",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "users": { "type": "array" },
+        "senderId": { "type": "string" },
+        "receiverId": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "users", "senderId", "receiverId", "status"]
     }
   },
   "firestore": {
     "/users/{userId}": {
       "schema": "User",
       "description": "User profiles and settings documents"
+    },
+    "/users/{userId}/private/{docId}": {
+      "schema": "object",
+      "description": "Confidential user settings and health/vitality biometrics"
+    },
+    "/friendships/{friendshipId}": {
+      "schema": "Friendship",
+      "description": "Established friendships and pending friend requests"
     },
     "/users/{userId}/reflections/{reflectionId}": {
       "schema": "Reflection",

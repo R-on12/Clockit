@@ -38,8 +38,14 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, defaultName }
       if (isLogin) {
         const cred = await loginWithEmailAndPassword(email, password);
         const displayName = cred.user.displayName || name;
+        if (displayName) {
+          localStorage.setItem('clockit_pending_nickname', displayName.trim());
+        }
         onAuthSuccess(cred.user.uid, displayName, cred.user.email || email);
       } else {
+        if (name) {
+          localStorage.setItem('clockit_pending_nickname', name.trim());
+        }
         const cred = await registerWithEmailAndPassword(email, password, name);
         onAuthSuccess(cred.user.uid, name, cred.user.email || email);
       }
@@ -68,7 +74,11 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, defaultName }
     try {
       const cred = await loginWithGoogle();
       const fallbackName = cred.user.email ? cred.user.email.split('@')[0] : 'Clock Seeker';
-      onAuthSuccess(cred.user.uid, cred.user.displayName || fallbackName, cred.user.email || '');
+      const nameToUse = cred.user.displayName || fallbackName;
+      if (nameToUse) {
+        localStorage.setItem('clockit_pending_nickname', nameToUse.trim());
+      }
+      onAuthSuccess(cred.user.uid, nameToUse, cred.user.email || '');
     } catch (err: any) {
       console.error("Google login error:", err);
       if (err.code === 'auth/unauthorized-domain') {

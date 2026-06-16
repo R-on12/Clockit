@@ -17,6 +17,7 @@ import { CirclesView } from './components/CirclesView';
 import { SettingsView } from './components/SettingsView';
 import { AuthView } from './components/AuthView';
 import { AdminView } from './components/AdminView';
+import { FriendsView } from './components/FriendsView';
 
 // Firebase Client SDK Integration imports
 import { onAuthStateChanged } from 'firebase/auth';
@@ -29,7 +30,9 @@ import {
   query, 
   orderBy, 
   getDocFromServer,
-  updateDoc
+  updateDoc,
+  deleteDoc,
+  where
 } from 'firebase/firestore';
 import { db, auth, logoutUser, handleFirestoreError, OperationType } from './firebase';
 
@@ -56,6 +59,7 @@ export default function App() {
   const [activeConversationId, setActiveConversationId] = useState<string>('wellness_guide');
   const [showNewChatOverlay, setShowNewChatOverlay] = useState<boolean>(false);
   const [registeredUsersList, setRegisteredUsersList] = useState<any[]>([]);
+  const [friendships, setFriendships] = useState<any[]>([]);
   const [loadingUsersDir, setLoadingUsersDir] = useState<boolean>(false);
   const [usersDirSearch, setUsersDirSearch] = useState<string>('');
 
@@ -85,6 +89,26 @@ export default function App() {
     });
     return () => unsubscribe();
   }, [isLoggedIn, currentUserUid]);
+
+  // Realtime Friendships Subscriber
+  useEffect(() => {
+    if (!currentUserUid || !isLoggedIn) return;
+
+    const friendshipsRef = collection(db, 'friendships');
+    const q = query(friendshipsRef, where('users', 'array-contains', currentUserUid));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const loaded: any[] = [];
+      snapshot.forEach(doc => {
+        loaded.push({ id: doc.id, ...doc.data() });
+      });
+      setFriendships(loaded);
+    }, (error) => {
+      console.error("Error fetching friendships in real-time:", error);
+    });
+
+    return () => unsubscribe();
+  }, [currentUserUid, isLoggedIn]);
 
   // 1. Verify Firestore Connection on Boot
   useEffect(() => {
@@ -117,22 +141,31 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // Sync / Initialize User Profile Settings and Vitals in Firestore
+  // Sync / Initialize User Profile Settings and Vitals in Firestore (splitting public vs private info)
   const loadOrCreateUser = async (uid: string, initialName: string, avatarUrl?: string) => {
     const userDocRef = doc(db, 'users', uid);
+    const vitalsDocRef = doc(db, 'users', uid, 'private', 'vitals');
     try {
       const userDoc = await getDoc(userDocRef);
+      const vitalsDoc = await getDoc(vitalsDocRef);
+
+      const pendingName = localStorage.getItem('clockit_pending_nickname');
+      let finalInitialName = initialName;
+      if (pendingName && pendingName !== 'Ronnie' && pendingName !== 'Jack') {
+        finalInitialName = pendingName;
+      }
+
       if (userDoc.exists()) {
         const data = userDoc.data();
-        let nameToUse = data.name || initialName;
+        let nameToUse = data.name || finalInitialName;
         let shouldUpdateDoc = false;
 
-        // Always prioritize the entered custom nickname for this signin/signup session, updating it so everything is for that user
-        if (initialName && initialName !== 'Ronnie' && initialName !== data.name) {
-          nameToUse = initialName;
+        // Always prioritize the entered custom nickname for this signin/signup session
+        if (finalInitialName && finalInitialName !== 'Ronnie' && finalInitialName !== data.name) {
+          nameToUse = finalInitialName;
           shouldUpdateDoc = true;
-        } else if ((data.name === 'Ronnie' || data.name === 'Jack' || !data.name) && initialName && initialName !== 'Ronnie' && initialName !== 'Jack') {
-          nameToUse = initialName;
+        } else if ((data.name === 'Ronnie' || data.name === 'Jack' || !data.name) && finalInitialName && finalInitialName !== 'Ronnie' && finalInitialName !== 'Jack') {
+          nameToUse = finalInitialName;
           shouldUpdateDoc = true;
         }
 
@@ -142,57 +175,88 @@ export default function App() {
           shouldUpdateDoc = true;
         }
 
+        // Load vitals from private subcollection or fallback to master doc (with writeback) or defaults
+        let vitalsData: any = {};
+        if (vitalsDoc.exists()) {
+          vitalsData = vitalsDoc.data();
+        } else {
+          vitalsData = {
+            sleepCurrent: data.sleepCurrent ?? 7.2,
+            sleepTarget: data.sleepTarget ?? 8.0,
+            stepsCurrent: data.stepsCurrent ?? 4.8,
+            stepsTarget: data.stepsTarget ?? 10.0,
+            waterCurrent: data.waterCurrent ?? 1.4,
+            waterTarget: data.waterTarget ?? 2.0,
+            notifications: data.notifications || 'Smart Alerts',
+            themeMode: data.themeMode || 'light',
+            smartAlerts: data.smartAlerts ?? true
+          };
+          await setDoc(vitalsDocRef, vitalsData);
+        }
+
         const loadedSettings = {
           name: nameToUse,
           membership: data.membership || 'Premium Member',
           clockLevel: data.clockLevel ?? data.zenLevel ?? 12,
           avatar: avatarToUse,
-          notifications: data.notifications || 'Smart Alerts',
-          themeMode: (data.themeMode as 'light' | 'dark' | 'sepia' | 'ocean' | 'forest' | 'cosmic') || 'light',
-          smartAlerts: data.smartAlerts ?? true,
+          notifications: vitalsData.notifications || 'Smart Alerts',
+          themeMode: (vitalsData.themeMode as any) || 'light',
+          smartAlerts: vitalsData.smartAlerts ?? true,
         };
         setUserSettings(loadedSettings);
         localStorage.setItem('clockit_user_settings', JSON.stringify(loadedSettings));
+        
         if (shouldUpdateDoc) {
-          await setDoc(userDocRef, { uid, name: nameToUse, avatar: avatarToUse }, { merge: true });
+          await setDoc(userDocRef, { uid, name: nameToUse, avatar: avatarToUse, membership: loadedSettings.membership, clockLevel: loadedSettings.clockLevel }, { merge: true });
         }
         setVitalState({
-          sleep: { current: data.sleepCurrent ?? 7.2, target: data.sleepTarget ?? 8.0, unit: 'h' },
-          steps: { current: data.stepsCurrent ?? 4.8, target: data.stepsTarget ?? 10.0, unit: 'k' },
-          water: { current: data.waterCurrent ?? 1.4, target: data.waterTarget ?? 2.0, unit: 'L' }
+          sleep: { current: vitalsData.sleepCurrent ?? 7.2, target: vitalsData.sleepTarget ?? 8.0, unit: 'h' },
+          steps: { current: vitalsData.stepsCurrent ?? 4.8, target: vitalsData.stepsTarget ?? 10.0, unit: 'k' },
+          water: { current: vitalsData.waterCurrent ?? 1.4, target: vitalsData.waterTarget ?? 2.0, unit: 'L' }
         });
       } else {
         const avatarToUse = avatarUrl || initialUserSettings.avatar;
-        const defaultDoc = {
+        const publicDoc = {
           uid: uid,
-          name: initialName,
+          name: finalInitialName,
           membership: 'Premium Member',
           clockLevel: 12,
           avatar: avatarToUse,
-          notifications: 'Smart Alerts',
-          themeMode: 'light',
-          smartAlerts: true,
+          createdAt: new Date().toISOString()
+        };
+        await setDoc(userDocRef, publicDoc);
+
+        const vitalsDocData = {
           sleepCurrent: 7.2,
           sleepTarget: 8.0,
           stepsCurrent: 4.8,
           stepsTarget: 10.0,
           waterCurrent: 1.4,
-          waterTarget: 2.0
+          waterTarget: 2.0,
+          notifications: 'Smart Alerts',
+          themeMode: 'light',
+          smartAlerts: true
         };
-        await setDoc(userDocRef, defaultDoc);
+        await setDoc(vitalsDocRef, vitalsDocData);
+
         const defaultSettings = {
-          name: initialName,
+          name: finalInitialName,
           membership: 'Premium Member',
           clockLevel: 12,
           avatar: avatarToUse,
           notifications: 'Smart Alerts',
-          themeMode: 'light',
+          themeMode: 'light' as const,
           smartAlerts: true,
         };
         setUserSettings(defaultSettings);
         localStorage.setItem('clockit_user_settings', JSON.stringify(defaultSettings));
         setVitalState(initialVitalState);
       }
+      
+      // Clear pending nickname state
+      try {
+        localStorage.removeItem('clockit_pending_nickname');
+      } catch (e) {}
     } catch (error) {
       handleFirestoreError(error, OperationType.GET, `users/${uid}`);
     }
@@ -403,7 +467,7 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [currentTab, activeConversationId]);
 
-  // Handle Vitality State Increments with firestore sync
+  // Handle Vitality State Increments with firestore sync (saving to private subcollection)
   const handleIncrementState = (metric: 'sleep' | 'steps' | 'water') => {
     setVitalState(prev => {
       const target = prev[metric].target;
@@ -422,16 +486,16 @@ export default function App() {
       };
 
       if (currentUserUid) {
-        const userDocRef = doc(db, 'users', currentUserUid);
+        const vitalsDocRef = doc(db, 'users', currentUserUid, 'private', 'vitals');
         const fieldMap = {
           sleep: 'sleepCurrent',
           steps: 'stepsCurrent',
           water: 'waterCurrent'
         };
-        setDoc(userDocRef, {
+        setDoc(vitalsDocRef, {
           [fieldMap[metric]]: nextVal
         }, { merge: true }).catch(err => {
-          handleFirestoreError(err, OperationType.UPDATE, `users/${currentUserUid}`);
+          handleFirestoreError(err, OperationType.UPDATE, `users/${currentUserUid}/private/vitals`);
         });
       }
 
@@ -518,22 +582,67 @@ export default function App() {
       const updated = { ...prev, ...newSettings };
       localStorage.setItem('clockit_user_settings', JSON.stringify(updated));
       if (currentUserUid) {
+        // Public settings
         const userDocRef = doc(db, 'users', currentUserUid);
         setDoc(userDocRef, {
           uid: currentUserUid,
           name: updated.name,
           membership: updated.membership,
           clockLevel: updated.clockLevel,
-          avatar: updated.avatar,
+          avatar: updated.avatar
+        }, { merge: true }).catch(err => {
+          handleFirestoreError(err, OperationType.UPDATE, `users/${currentUserUid}`);
+        });
+
+        // Private / personal configuration
+        const vitalsDocRef = doc(db, 'users', currentUserUid, 'private', 'vitals');
+        setDoc(vitalsDocRef, {
           notifications: updated.notifications,
           themeMode: updated.themeMode,
           smartAlerts: updated.smartAlerts
         }, { merge: true }).catch(err => {
-          handleFirestoreError(err, OperationType.UPDATE, `users/${currentUserUid}`);
+          handleFirestoreError(err, OperationType.UPDATE, `users/${currentUserUid}/private/vitals`);
         });
       }
       return updated;
     });
+  };
+
+  // --- Friendship System Real-time Actions ---
+  const handleSendFriendRequest = async (receiverId: string, receiverName: string, receiverAvatar: string) => {
+    if (!currentUserUid) return;
+    const friendshipId = [currentUserUid, receiverId].sort().join('_');
+    const friendshipRef = doc(db, 'friendships', friendshipId);
+    await setDoc(friendshipRef, {
+      id: friendshipId,
+      users: [currentUserUid, receiverId],
+      senderId: currentUserUid,
+      receiverId: receiverId,
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    });
+  };
+
+  const handleAcceptFriendRequest = async (friendshipId: string) => {
+    const friendshipRef = doc(db, 'friendships', friendshipId);
+    await updateDoc(friendshipRef, {
+      status: 'accepted'
+    });
+  };
+
+  const handleRejectFriendRequest = async (friendshipId: string) => {
+    const friendshipRef = doc(db, 'friendships', friendshipId);
+    await deleteDoc(friendshipRef);
+  };
+
+  const handleCancelFriendRequest = async (friendshipId: string) => {
+    const friendshipRef = doc(db, 'friendships', friendshipId);
+    await deleteDoc(friendshipRef);
+  };
+
+  const handleRemoveFriend = async (friendshipId: string) => {
+    const friendshipRef = doc(db, 'friendships', friendshipId);
+    await deleteDoc(friendshipRef);
   };
 
   // Circle / Community Posts Actions
@@ -763,6 +872,7 @@ export default function App() {
 
   // Helper title strings
   const activeConversation = conversations.find(c => c.id === activeConversationId) || conversations[0];
+  const pendingIncomingRequestsCount = friendships.filter(f => f.status === 'pending' && f.receiverId === currentUserUid).length;
 
   const getThemeClass = () => {
     if (userSettings.themeMode === 'dark') return 'theme-dark';
@@ -872,6 +982,20 @@ export default function App() {
           />
         )}
 
+        {currentTab === 'friends' && currentUserUid && (
+          <FriendsView
+            currentUserId={currentUserUid}
+            registeredUsers={registeredUsersList}
+            friendships={friendships}
+            onSendRequest={handleSendFriendRequest}
+            onAcceptRequest={handleAcceptFriendRequest}
+            onRejectRequest={handleRejectFriendRequest}
+            onCancelRequest={handleCancelFriendRequest}
+            onRemoveFriend={handleRemoveFriend}
+            onStartDirectChat={handleStartDirectChat}
+          />
+        )}
+
         {currentTab === 'settings' && (
           <SettingsView
             userSettings={userSettings}
@@ -924,6 +1048,22 @@ export default function App() {
             <span className="text-[10px] mt-1 font-label leading-none font-bold">Messages</span>
             {conversations.some(c => c.unreadCount > 0) && (
               <span className="absolute top-2 right-4 w-2 h-2 bg-secondary rounded-full"></span>
+            )}
+          </button>
+
+          {/* Friend discovery and request system */}
+          <button
+            onClick={() => setCurrentTab('friends')}
+            className={`flex flex-col items-center p-3 transition-colors duration-300 outline-none relative ${
+              currentTab === 'friends' ? 'text-primary' : 'text-outline hover:text-primary'
+            }`}
+          >
+            <UserCheck className={`w-5 h-5 ${currentTab === 'friends' ? 'stroke-[2.5px]' : 'stroke-[1.5px]'}`} />
+            <span className="text-[10px] mt-1 font-label leading-none font-bold">Friends</span>
+            {pendingIncomingRequestsCount > 0 && (
+              <span className="absolute top-1.5 right-3 px-1.5 py-0.5 text-[8px] font-bold bg-red-500 text-white rounded-full min-w-[14px] leading-none flex items-center justify-center animate-pulse">
+                {pendingIncomingRequestsCount}
+              </span>
             )}
           </button>
 
