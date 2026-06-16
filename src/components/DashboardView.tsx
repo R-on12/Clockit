@@ -8,6 +8,8 @@ interface DashboardViewProps {
   userSettings: UserSettings;
   onNavigate: (tab: string, arg?: string) => void;
   onIncrementState: (metric: 'sleep' | 'steps' | 'water') => void;
+  registeredUsers?: any[];
+  onStartDirectChat?: (id: string, name: string, avatar: string) => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -16,6 +18,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   userSettings,
   onNavigate,
   onIncrementState,
+  registeredUsers = [],
+  onStartDirectChat,
 }) => {
   // Recent conversations to display (the most recent conversations)
   const recentChats = conversations.slice(0, 2);
@@ -58,6 +62,62 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <p className="mt-4 text-on-surface-variant font-body tracking-wide">
           Your active communication circles and connections are waiting.
         </p>
+      </section>
+
+      {/* Registered Platforms Directory section */}
+      <section className="mb-8" id="registered-members-quick-access">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Users className="w-5 h-5 text-primary" />
+            <h2 className="text-xl font-headline text-primary font-bold">Registered Members</h2>
+          </div>
+          <span className="text-[10px] font-mono font-bold bg-primary/10 text-primary px-2.5 py-1 rounded-full uppercase tracking-wider">
+            {registeredUsers.length} {registeredUsers.length === 1 ? 'member' : 'members'}
+          </span>
+        </div>
+        
+        {registeredUsers.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {registeredUsers.map((user) => (
+              <button
+                key={user.uid}
+                onClick={() => onStartDirectChat?.(user.uid, user.name, user.avatar)}
+                className="flex items-center gap-3 p-3 bg-surface-container-low hover:bg-surface-container-high border border-outline-variant/10 hover:border-primary/20 rounded-2xl text-left transition-all group cursor-pointer"
+              >
+                {user.avatar ? (
+                  <img
+                    src={user.avatar}
+                    alt={user.name}
+                    className="w-10 h-10 rounded-full object-cover border border-outline-variant/15 flex-shrink-0"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm flex-shrink-0">
+                    {user.name.split(' ').map((n: string) => n[0]).slice(0, 2).join('')}
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-semibold text-on-surface truncate group-hover:text-primary transition-colors flex items-center gap-1.5">
+                    <span className="truncate">{user.name}</span>
+                    {user.isSelf && (
+                      <span className="text-[9px] font-bold bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-sans flex-shrink-0">
+                        You
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[10px] text-outline font-mono truncate">
+                    Clock Lvl {user.clockLevel ?? 12}
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-surface-container-low/40 border border-dashed border-outline-variant/30 rounded-2xl p-6 text-center text-outline">
+            <p className="text-sm font-semibold mb-1">No other registered users yet</p>
+            <p className="text-xs">Once more seekers register to this workspace, they will automatically appear here.</p>
+          </div>
+        )}
       </section>
 
       {/* Active Chats Section */}

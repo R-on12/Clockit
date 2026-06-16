@@ -15,7 +15,6 @@ import { MessagesView } from './components/MessagesView';
 import { ChatView } from './components/ChatView';
 import { CirclesView } from './components/CirclesView';
 import { SettingsView } from './components/SettingsView';
-import { InsightsView } from './components/InsightsView';
 import { AuthView } from './components/AuthView';
 import { AdminView } from './components/AdminView';
 
@@ -69,16 +68,14 @@ export default function App() {
       const fetched: any[] = [];
       snapshot.forEach((doc) => {
         const data = doc.data();
-        // Skip current user to prevent direct messaging yourself
-        if (doc.id !== currentUserUid) {
-          fetched.push({
-            uid: doc.id,
-            name: data.name || 'Anonymous Member',
-            avatar: data.avatar || '',
-            membership: data.membership || 'Registered Member',
-            clockLevel: data.clockLevel ?? data.zenLevel ?? 12
-          });
-        }
+        fetched.push({
+          uid: doc.id,
+          name: data.name || 'Anonymous Member',
+          avatar: data.avatar || '',
+          membership: data.membership || 'Registered Member',
+          clockLevel: data.clockLevel ?? data.zenLevel ?? 12,
+          isSelf: doc.id === currentUserUid
+        });
       });
       setRegisteredUsersList(fetched);
       setLoadingUsersDir(false);
@@ -110,7 +107,7 @@ export default function App() {
         setCurrentUserUid(user.uid);
         setCurrentUserEmail(user.email || null);
         setIsLoggedIn(true);
-        await loadOrCreateUser(user.uid, user.displayName || 'Ronnie');
+        await loadOrCreateUser(user.uid, user.displayName || 'Ronnie', user.photoURL || undefined);
       } else {
         setCurrentUserUid(null);
         setCurrentUserEmail(null);
@@ -121,7 +118,7 @@ export default function App() {
   }, []);
 
   // Sync / Initialize User Profile Settings and Vitals in Firestore
-  const loadOrCreateUser = async (uid: string, initialName: string) => {
+  const loadOrCreateUser = async (uid: string, initialName: string, avatarUrl?: string) => {
     const userDocRef = doc(db, 'users', uid);
     try {
       const userDoc = await getDoc(userDocRef);
@@ -139,11 +136,17 @@ export default function App() {
           shouldUpdateDoc = true;
         }
 
+        let avatarToUse = data.avatar || initialUserSettings.avatar;
+        if (avatarUrl && (!data.avatar || data.avatar.includes('dicebear') || data.avatar.includes('avatar.png'))) {
+          avatarToUse = avatarUrl;
+          shouldUpdateDoc = true;
+        }
+
         const loadedSettings = {
           name: nameToUse,
           membership: data.membership || 'Premium Member',
           clockLevel: data.clockLevel ?? data.zenLevel ?? 12,
-          avatar: data.avatar || initialUserSettings.avatar,
+          avatar: avatarToUse,
           notifications: data.notifications || 'Smart Alerts',
           themeMode: (data.themeMode as 'light' | 'dark' | 'sepia' | 'ocean' | 'forest' | 'cosmic') || 'light',
           smartAlerts: data.smartAlerts ?? true,
@@ -151,7 +154,7 @@ export default function App() {
         setUserSettings(loadedSettings);
         localStorage.setItem('clockit_user_settings', JSON.stringify(loadedSettings));
         if (shouldUpdateDoc) {
-          await setDoc(userDocRef, { uid, name: nameToUse }, { merge: true });
+          await setDoc(userDocRef, { uid, name: nameToUse, avatar: avatarToUse }, { merge: true });
         }
         setVitalState({
           sleep: { current: data.sleepCurrent ?? 7.2, target: data.sleepTarget ?? 8.0, unit: 'h' },
@@ -159,12 +162,13 @@ export default function App() {
           water: { current: data.waterCurrent ?? 1.4, target: data.waterTarget ?? 2.0, unit: 'L' }
         });
       } else {
+        const avatarToUse = avatarUrl || initialUserSettings.avatar;
         const defaultDoc = {
           uid: uid,
           name: initialName,
           membership: 'Premium Member',
           clockLevel: 12,
-          avatar: initialUserSettings.avatar,
+          avatar: avatarToUse,
           notifications: 'Smart Alerts',
           themeMode: 'light',
           smartAlerts: true,
@@ -180,7 +184,7 @@ export default function App() {
           name: initialName,
           membership: 'Premium Member',
           clockLevel: 12,
-          avatar: initialUserSettings.avatar,
+          avatar: avatarToUse,
           notifications: 'Smart Alerts',
           themeMode: 'light',
           smartAlerts: true,
@@ -779,7 +783,7 @@ export default function App() {
         onAuthSuccess={async (uid, userName, email) => { 
           setCurrentUserUid(uid);
           setIsLoggedIn(true); 
-          await loadOrCreateUser(uid, userName);
+          await loadOrCreateUser(uid, userName, auth.currentUser?.photoURL || undefined);
         }} 
       />
     );
@@ -842,14 +846,8 @@ export default function App() {
             userSettings={userSettings}
             onNavigate={onNavigate}
             onIncrementState={handleIncrementState}
-          />
-        )}
-
-        {currentTab === 'insights' && (
-          <InsightsView
-            vitalState={vitalState}
-            reflections={reflections}
-            userName={userSettings.name}
+            registeredUsers={registeredUsersList}
+            onStartDirectChat={handleStartDirectChat}
           />
         )}
 
@@ -858,6 +856,8 @@ export default function App() {
             conversations={conversations}
             onSelectConversation={handleSelectConversationFromList}
             onStartNewChat={handleTriggerNewChatDialog}
+            registeredUsers={registeredUsersList}
+            onStartDirectChat={handleStartDirectChat}
           />
         )}
 
@@ -911,17 +911,6 @@ export default function App() {
           >
             <LayoutDashboard className={`w-5 h-5 ${currentTab === 'home' ? 'stroke-[2.5px]' : 'stroke-[1.5px]'}`} />
             <span className="text-[10px] mt-1 font-label leading-none font-bold">Home</span>
-          </button>
-
-          {/* Analytics/Insights tab (Displays "Insights" as seen in image bottom nav) */}
-          <button
-            onClick={() => setCurrentTab('insights')}
-            className={`flex flex-col items-center p-3 transition-colors duration-300 outline-none ${
-              currentTab === 'insights' ? 'text-primary' : 'text-outline hover:text-primary'
-            }`}
-          >
-            <TrendingUp className={`w-5 h-5 ${currentTab === 'insights' ? 'stroke-[2.5px]' : 'stroke-[1.5px]'}`} />
-            <span className="text-[10px] mt-1 font-label leading-none font-bold">Insights</span>
           </button>
 
           {/* Active Chats/Messages tab with dynamic notification badge if any conversation has unread messages */}
@@ -1016,8 +1005,13 @@ export default function App() {
                           </div>
                         )}
                         <div>
-                          <div className="font-body text-sm font-bold text-on-surface group-hover:text-primary transition-colors">
-                            {u.name}
+                          <div className="font-body text-sm font-bold text-on-surface group-hover:text-primary transition-colors flex items-center gap-1.5">
+                            <span>{u.name}</span>
+                            {u.isSelf && (
+                              <span className="text-[9px] font-bold bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-sans flex-shrink-0">
+                                You
+                              </span>
+                            )}
                           </div>
                           <div className="text-[10px] text-outline font-mono">
                             Clock Level {u.clockLevel ?? u.zenLevel ?? 12} • {u.membership}

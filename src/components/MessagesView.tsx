@@ -6,12 +6,16 @@ interface MessagesViewProps {
   conversations: Conversation[];
   onSelectConversation: (id: string) => void;
   onStartNewChat?: () => void;
+  registeredUsers?: any[];
+  onStartDirectChat?: (id: string, name: string, avatar: string) => void;
 }
 
 export const MessagesView: React.FC<MessagesViewProps> = ({
   conversations,
   onSelectConversation,
   onStartNewChat,
+  registeredUsers = [],
+  onStartDirectChat,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -47,6 +51,65 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
           />
         </div>
       </section>
+
+      {/* Registered Directory Quick Connect */}
+      {registeredUsers && registeredUsers.length > 0 && (
+        <section className="mb-6 -mt-4 bg-surface-container-low/20 p-4 rounded-3xl border border-outline-variant/10" id="quick-connect-registered-members">
+          <div className="flex items-center justify-between mb-3 px-1">
+            <span className="font-headline text-xs font-bold text-primary uppercase tracking-wider">Quick Connect Directory</span>
+            <button 
+              onClick={onStartNewChat} 
+              className="text-primary text-xs font-semibold hover:underline bg-primary/5 px-2.5 py-1 rounded-full text-[11px]"
+              id="view-all-registered-members-link"
+            >
+              Search ({registeredUsers.length})
+            </button>
+          </div>
+          <div className="flex items-center gap-4 overflow-x-auto pb-2 pt-1 scrollbar-none scroll-smooth">
+            {/* Quick search/add entry button */}
+            <button
+              onClick={onStartNewChat}
+              className="flex flex-col items-center gap-1.5 flex-shrink-0 group"
+              id="quick-start-chat-button"
+            >
+              <div className="w-12 h-12 rounded-full border border-dashed border-primary/40 group-hover:border-primary group-hover:bg-primary/5 flex items-center justify-center transition-all bg-surface-container-low">
+                <span className="text-xl text-primary group-hover:scale-110 transition-transform font-bold">+</span>
+              </div>
+              <span className="text-[11px] font-medium text-outline truncate w-14 text-center group-hover:text-primary transition-colors">
+                Search
+              </span>
+            </button>
+
+            {/* List users */}
+            {registeredUsers.map((user) => (
+              <button
+                key={user.uid}
+                onClick={() => onStartDirectChat?.(user.uid, user.name, user.avatar)}
+                className="flex flex-col items-center gap-1.5 flex-shrink-0 group focus:outline-none cursor-pointer"
+              >
+                <div className="relative">
+                  {user.avatar ? (
+                    <img
+                      src={user.avatar}
+                      alt={user.name}
+                      className="w-12 h-12 rounded-full object-cover border border-outline-variant/10 shadow-sm group-hover:scale-105 group-hover:border-primary group-focus:border-primary transition-all"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm group-hover:scale-105 group-hover:border-primary group-focus:border-primary transition-all">
+                      {user.name.split(' ').map((n: string) => n[0]).slice(0, 2).join('')}
+                    </div>
+                  )}
+                  <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-surface rounded-full"></span>
+                </div>
+                <span className="text-[11px] font-medium text-on-surface truncate w-14 text-center group-hover:text-primary transition-colors">
+                  {user.isSelf ? 'You' : user.name.split(' ')[0]}
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Featured list */}
       {featuredConversations.length > 0 && (
