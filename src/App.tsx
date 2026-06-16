@@ -130,8 +130,11 @@ export default function App() {
         let nameToUse = data.name || initialName;
         let shouldUpdateDoc = false;
 
-        // Correct race conditions where the Firestore doc was pre-maturely auto-created as 'Ronnie' or 'Jack'
-        if ((data.name === 'Ronnie' || data.name === 'Jack' || !data.name) && initialName && initialName !== 'Ronnie' && initialName !== 'Jack') {
+        // Always prioritize the entered custom nickname for this signin/signup session, updating it so everything is for that user
+        if (initialName && initialName !== 'Ronnie' && initialName !== data.name) {
+          nameToUse = initialName;
+          shouldUpdateDoc = true;
+        } else if ((data.name === 'Ronnie' || data.name === 'Jack' || !data.name) && initialName && initialName !== 'Ronnie' && initialName !== 'Jack') {
           nameToUse = initialName;
           shouldUpdateDoc = true;
         }
