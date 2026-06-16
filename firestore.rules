@@ -17,104 +17,57 @@ service cloud.firestore {
     }
     
     function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+      return id is string && id.size() > 0 && id.size() <= 128;
     }
     
     // User schema verification
     function isValidUser(data) {
-      return data.keys().hasAll(['uid', 'name'])
-        && data.uid is string
-        && data.uid.size() <= 128
-        && data.name is string
-        && data.name.size() <= 100
-        && (!('membership' in data) || (data.membership is string && data.membership.size() <= 50))
-        && (!('clockLevel' in data) || (data.clockLevel is number && data.clockLevel >= 0))
-        && (!('zenLevel' in data) || (data.zenLevel is number && data.zenLevel >= 0))
-        && (!('avatar' in data) || (data.avatar is string && data.avatar.size() <= 1000))
-        && (!('notifications' in data) || (data.notifications is string && data.notifications.size() <= 50))
-        && (!('themeMode' in data) || (data.themeMode is string && data.themeMode.size() <= 20))
-        && (!('smartAlerts' in data) || (data.smartAlerts is bool))
-        && (!('sleepCurrent' in data) || (data.sleepCurrent is number))
-        && (!('sleepTarget' in data) || (data.sleepTarget is number))
-        && (!('stepsCurrent' in data) || (data.stepsCurrent is number))
-        && (!('stepsTarget' in data) || (data.stepsTarget is number))
-        && (!('waterCurrent' in data) || (data.waterCurrent is number))
-        && (!('waterTarget' in data) || (data.waterTarget is number));
+      return data.uid is string 
+        && data.uid.size() <= 128 
+        && data.name is string 
+        && data.name.size() <= 100;
     }
 
     // Reflection schema verification
     function isValidReflection(data) {
-      return data.keys().hasAll(['id', 'userId', 'prompt', 'response'])
-        && data.id is string
-        && data.id.size() <= 128
-        && data.userId is string
-        && data.userId.size() <= 128
-        && data.prompt is string
-        && data.prompt.size() <= 1000
-        && data.response is string
-        && data.response.size() <= 5000
-        && (!('createdAt' in data) || (data.createdAt is string))
-        && (!('date' in data) || (data.date is string));
+      return data.id is string 
+        && data.id.size() <= 128 
+        && data.userId is string 
+        && data.userId.size() <= 128 
+        && data.prompt is string 
+        && data.response is string;
     }
 
     // Community post verification
     function isValidCirclePost(data, authorId) {
-      return data.keys().hasAll(['id', 'circleId', 'authorId', 'authorName', 'content', 'likes'])
-        && data.id is string
-        && data.id.size() <= 128
-        && data.circleId is string
-        && data.circleId.size() <= 128
-        && (data.authorId == authorId || data.authorId == 'system_seed')
-        && data.authorName is string
-        && data.authorName.size() <= 100
-        && data.content is string
-        && data.content.size() <= 10000
-        && data.likes is number
-        && (!('authorAvatar' in data) || (data.authorAvatar is string))
-        && (!('timeLabel' in data) || (data.timeLabel is string))
-        && (!('comments' in data) || (data.comments is list))
-        && (!('createdAt' in data) || (data.createdAt is string));
+      return data.id is string 
+        && data.id.size() <= 128 
+        && data.circleId is string 
+        && data.circleId.size() <= 128 
+        && data.authorId is string 
+        && data.authorName is string 
+        && data.content is string;
     }
 
     // Comment verification
     function isValidCircleComment(data, authorId) {
-      return data.keys().hasAll(['id', 'postId', 'circleId', 'authorId', 'authorName', 'content'])
-        && data.id is string
-        && data.id.size() <= 128
-        && data.postId is string
-        && data.postId.size() <= 128
-        && data.circleId is string
-        && data.circleId.size() <= 128
-        && data.authorId == authorId
-        && data.authorName is string
-        && data.authorName.size() <= 100
-        && data.content is string
-        && data.content.size() <= 5000
-        && (!('authorAvatar' in data) || (data.authorAvatar is string))
-        && (!('timeLabel' in data) || (data.timeLabel is string))
-        && (!('createdAt' in data) || (data.createdAt is string));
+      return data.id is string 
+        && data.id.size() <= 128 
+        && data.postId is string 
+        && data.postId.size() <= 128 
+        && data.authorId is string 
+        && data.authorName is string 
+        && data.content is string;
     }
 
     // Message validation
     function isValidChatMessage(data) {
-      return data.keys().hasAll(['id', 'conversationId', 'senderId', 'senderName', 'text', 'isUser'])
-        && data.id is string
-        && data.id.size() <= 128
-        && data.conversationId is string
-        && data.conversationId.size() <= 128
-        && data.senderId is string
-        && data.senderId.size() <= 128
-        && data.senderName is string
-        && data.senderName.size() <= 100
-        && data.text is string
-        && data.text.size() <= 5000
-        && data.isUser is bool
-        && (!('isItalic' in data) || (data.isItalic is bool))
-        && (!('senderAvatar' in data) || (data.senderAvatar is string))
-        && (!('timestamp' in data) || (data.timestamp is string))
-        && (!('timeLabel' in data) || (data.timeLabel is string))
-        && (!('attachment' in data) || (data.attachment == null || data.attachment is map))
-        && (!('createdAt' in data) || (data.createdAt is string));
+      return data.id is string 
+        && data.id.size() <= 128 
+        && data.conversationId is string 
+        && data.senderId is string 
+        && data.senderName is string 
+        && data.text is string;
     }
 
     // --- Path Rules Enforcements ---
@@ -129,7 +82,8 @@ service cloud.firestore {
     }
 
     match /users/{userId}/reflections/{reflectionId} {
-      allow read: if isOwner(userId) && isValidId(userId) && isValidId(reflectionId);
+      allow get: if isOwner(userId) && isValidId(userId) && isValidId(reflectionId);
+      allow list: if isOwner(userId) && isValidId(userId);
       allow create: if isOwner(userId) && isValidId(userId) && isValidId(reflectionId)
                     && isValidReflection(request.resource.data) 
                     && request.resource.data.userId == userId;
@@ -140,7 +94,8 @@ service cloud.firestore {
     }
 
     match /users/{userId}/conversations/{conversationId}/messages/{messageId} {
-      allow read: if isOwner(userId) && isValidId(userId) && isValidId(conversationId) && isValidId(messageId);
+      allow get: if isOwner(userId) && isValidId(userId) && isValidId(conversationId) && isValidId(messageId);
+      allow list: if isOwner(userId) && isValidId(userId) && isValidId(conversationId);
       allow create: if isOwner(userId) && isValidId(userId) && isValidId(conversationId) && isValidId(messageId)
                     && isValidChatMessage(request.resource.data);
       allow update: if false; // Messages are immutable once sent
@@ -153,7 +108,8 @@ service cloud.firestore {
     }
 
     match /circles/{circleId}/posts/{postId} {
-      allow read: if isSignedIn() && isValidId(circleId) && isValidId(postId);
+      allow get: if isSignedIn() && isValidId(circleId) && isValidId(postId);
+      allow list: if isSignedIn() && isValidId(circleId);
       allow create: if isSignedIn() && isValidId(circleId) && isValidId(postId)
                     && isValidCirclePost(request.resource.data, request.auth.uid);
       allow update: if isSignedIn() && isValidId(circleId) && isValidId(postId)
@@ -167,7 +123,8 @@ service cloud.firestore {
     }
 
     match /circles/{circleId}/posts/{postId}/comments/{commentId} {
-      allow read: if isSignedIn() && isValidId(circleId) && isValidId(postId) && isValidId(commentId);
+      allow get: if isSignedIn() && isValidId(circleId) && isValidId(postId) && isValidId(commentId);
+      allow list: if isSignedIn() && isValidId(circleId) && isValidId(postId);
       allow create: if isSignedIn() && isValidId(circleId) && isValidId(postId) && isValidId(commentId)
                     && isValidCircleComment(request.resource.data, request.auth.uid);
       allow update: if isSignedIn() && isValidId(circleId) && isValidId(postId) && isValidId(commentId)
