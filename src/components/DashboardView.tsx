@@ -22,7 +22,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onStartDirectChat,
 }) => {
   // Recent conversations to display (the most recent conversations)
-  const recentChats = conversations.slice(0, 2);
+  const recentChats = conversations.filter(c => c.id !== 'wellness_guide').slice(0, 2);
 
   const getMetricProgress = (current: number, target: number) => {
     const ratio = current / target;

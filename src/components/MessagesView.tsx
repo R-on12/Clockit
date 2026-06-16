@@ -23,8 +23,10 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
   const featuredIds = ['wellness_guide', 'clock_seekers', 'clock_community'];
   
   const filteredConversations = conversations.filter(c =>
-    c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
+    c.id !== 'wellness_guide' && (
+      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
+    )
   );
 
   const featuredConversations = filteredConversations.filter(c => featuredIds.includes(c.id));

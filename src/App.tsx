@@ -20,7 +20,7 @@ import { AdminView } from './components/AdminView';
 import { FriendsView } from './components/FriendsView';
 
 // Firebase Client SDK Integration imports
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, updateProfile } from 'firebase/auth';
 import { 
   doc, 
   setDoc, 
@@ -160,11 +160,11 @@ export default function App() {
         let nameToUse = data.name || finalInitialName;
         let shouldUpdateDoc = false;
 
-        // Always prioritize the entered custom nickname for this signin/signup session
-        if (finalInitialName && finalInitialName !== 'Ronnie' && finalInitialName !== data.name) {
-          nameToUse = finalInitialName;
+        // ONLY prioritize the custom pending name if it was explicitly set from an active signin/signup in localStorage
+        if (pendingName && pendingName !== data.name) {
+          nameToUse = pendingName;
           shouldUpdateDoc = true;
-        } else if ((data.name === 'Ronnie' || data.name === 'Jack' || !data.name) && finalInitialName && finalInitialName !== 'Ronnie' && finalInitialName !== 'Jack') {
+        } else if (!data.name) {
           nameToUse = finalInitialName;
           shouldUpdateDoc = true;
         }
@@ -582,6 +582,12 @@ export default function App() {
       const updated = { ...prev, ...newSettings };
       localStorage.setItem('clockit_user_settings', JSON.stringify(updated));
       if (currentUserUid) {
+        // Also update auth profile to keep names tightly aligned across reloads
+        if (newSettings.name && auth.currentUser) {
+          updateProfile(auth.currentUser, { displayName: newSettings.name }).catch(err => {
+            console.warn("Failed to update auth display name:", err);
+          });
+        }
         // Public settings
         const userDocRef = doc(db, 'users', currentUserUid);
         setDoc(userDocRef, {
@@ -1046,7 +1052,7 @@ export default function App() {
           >
             <MessageSquare className={`w-5 h-5 ${currentTab === 'messages' ? 'stroke-[2.5px]' : 'stroke-[1.5px]'}`} />
             <span className="text-[10px] mt-1 font-label leading-none font-bold">Messages</span>
-            {conversations.some(c => c.unreadCount > 0) && (
+            {conversations.some(c => c.id !== 'wellness_guide' && c.unreadCount > 0) && (
               <span className="absolute top-2 right-4 w-2 h-2 bg-secondary rounded-full"></span>
             )}
           </button>
