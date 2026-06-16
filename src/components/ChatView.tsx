@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Video, Phone, MoreVertical, Plus, Send, Sparkles, X, Heart, FileText, Image, Camera, Paperclip, Download, Mic, MicOff, VideoOff, PhoneOff, Activity, Volume2, VolumeX, Check, CheckCheck, Smile, CornerUpLeft, Trash2, Search, Play, Pause, Sliders, Link, Upload } from 'lucide-react';
+import { ArrowLeft, Video, Phone, MoreVertical, Plus, Send, Sparkles, X, Heart, FileText, Image, Camera, Paperclip, Download, Mic, MicOff, VideoOff, PhoneOff, Activity, Volume2, VolumeX, Check, CheckCheck, Smile, CornerUpLeft, Trash2, Search, Play, Pause, Sliders, Link, Upload, LayoutGrid, Maximize2, Minimize2, Settings } from 'lucide-react';
 import { Conversation, Message, Reflection } from '../types';
 
 interface ChatViewProps {
@@ -227,6 +227,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
   const [activeSessionTimer, setActiveSessionTimer] = useState(0);
   const [heartCoherence, setHeartCoherence] = useState(94);
   const [videoCallGuidance, setVideoCallGuidance] = useState("Establishing secure holographic link...");
+  const [callLayout, setCallLayout] = useState<'grid' | 'pip'>('grid');
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
 
   // Aura immersive audio call states
   const [showAudioCall, setShowAudioCall] = useState(false);
@@ -2501,423 +2503,698 @@ export const ChatView: React.FC<ChatViewProps> = ({
         </div>
       )}
 
-      {/* Immersive Full Screen Presence Call Overlay */}
+      {/* Immersive Teams / WhatsApp Video Presence Call Overlay */}
       {showVideoCall && (
-        <div className="fixed inset-0 bg-neutral-950/95 backdrop-blur-2xl z-50 flex flex-col md:flex-row p-4 md:p-6 gap-4 md:gap-6 text-white animate-fade-in font-sans">
-          {/* Main Visual Stream Viewport */}
-          <div className="flex-grow flex flex-col justify-between bg-neutral-900/60 rounded-3xl p-5 border border-white/5 relative overflow-hidden min-h-[350px] md:min-h-[450px]">
-            {/* Background Stream View (either camera or slow gradient) */}
-            {isLocalVideoSwapped && isVideoEnabled ? (
-              <video 
-                ref={(el) => {
-                  localVideoRef.current = el;
-                  if (el && localStreamRef.current) {
-                    el.srcObject = localStreamRef.current;
-                  }
-                }}
-                autoPlay 
-                playsInline 
-                muted 
-                onClick={() => setIsLocalVideoSwapped(false)}
-                className="absolute inset-x-0 inset-y-0 w-full h-full object-cover rounded-3xl cursor-pointer hover:opacity-90 transition-all z-0"
-                title="Click to minimize"
-              />
-            ) : (
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(98,111,88,0.18),transparent_55%)] pointer-events-none animate-pulse duration-[6000ms] z-0" />
-            )}
+        <div id="video-call-overlay" className="fixed inset-0 bg-[#111214] z-50 flex flex-col md:flex-row p-4 md:p-6 gap-4 md:gap-6 text-white animate-fade-in font-sans overflow-hidden animate-fade-in">
+          
+          {/* Left/Main Stage: Call screen */}
+          <div className="flex-grow flex flex-col justify-between relative overflow-hidden rounded-3xl bg-[#1e1f22]/50 border border-white/5 p-4 md:p-6 min-h-[350px]">
             
-            {/* Upper Info Row */}
-            <div className="flex items-center justify-between z-10 w-full">
-              <div className="flex items-center gap-3 bg-black/40 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/5">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[10px] uppercase font-mono tracking-widest font-semibold text-emerald-400">
-                  {isLocalVideoSwapped ? "Your Stream Enlarged" : "Live Presence Sync active"}
-                </span>
+            {/* Header: Call Room Info */}
+            <div className="flex items-center justify-between z-20 w-full bg-black/30 backdrop-blur-md px-4 py-3 rounded-2xl border border-white/5">
+              <div className="flex items-center gap-3">
+                <div className="relative flex items-center justify-center">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping absolute" />
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                </div>
+                <div className="flex flex-col">
+                  <h3 className="text-xs md:text-sm font-headline font-semibold text-white tracking-tight">
+                    {conversation.name}
+                  </h3>
+                  <p className="text-[10px] text-zinc-400 font-mono tracking-wider">
+                    {callLayout === 'grid' ? 'MS Teams Grid Mode' : 'WhatsApp PiP Mode'} &bull; Secure Encrypted
+                  </p>
+                </div>
               </div>
-              <div className="bg-black/40 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/5 font-mono text-xs font-semibold">
+              
+              {/* Duration Timer */}
+              <div className="flex items-center gap-2 bg-neutral-900/80 px-3 py-1.5 rounded-xl border border-white/5 font-mono text-xs font-bold text-primary">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                 {String(Math.floor(activeSessionTimer / 60)).padStart(2, '0')}:{String(activeSessionTimer % 60).padStart(2, '0')}
               </div>
             </div>
 
-            {/* Central Immersive Remote Participant Visualizer or Notification Overlay */}
-            {!isLocalVideoSwapped ? (
-              <div className="flex flex-col items-center justify-center z-10 my-auto text-center gap-6 relative">
-                <div className="relative flex items-center justify-center">
-                  {/* Visual breathing ring */}
-                  <span className="absolute w-36 h-36 rounded-full bg-primary/20 animate-ping duration-[3500ms]" />
-                  <span className="absolute w-28 h-28 rounded-full bg-secondary/15 animate-pulse duration-[2000ms]" />
-
-                  {conversation.avatar ? (
-                    <img 
-                      src={conversation.avatar} 
-                      alt={conversation.name} 
-                      className="w-24 h-24 rounded-full object-cover border-4 border-white/10 shadow-2xl relative z-10 animate-fade-in"
-                      referrerPolicy="no-referrer"
-                    />
-                  ) : (
-                    <div className="w-24 h-24 rounded-full bg-primary/20 border-4 border-white/10 shadow-2xl relative z-10 flex items-center justify-center text-primary text-xl font-bold font-headline animate-fade-in">
-                      {conversation.name.split(' ').map(n => n[0]).join('')}
+            {/* Central Call Stage (Dynamic Layouts) */}
+            <div className="flex-grow my-4 relative flex items-center justify-center w-full h-full min-h-0">
+              
+              {callLayout === 'grid' ? (
+                /* MS TEAMS GRID LAYOUT: Splits screen beautifully */
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full h-full max-h-[500px]">
+                  
+                  {/* Remote Participant Box */}
+                  <div className="bg-[#1e1f22] border border-white/5 rounded-2xl flex flex-col items-center justify-center p-6 relative overflow-hidden group hover:border-[#38ef7d]/30 transition-all">
+                    {/* Pulsing halo behind remote avatar */}
+                    <div className="absolute inset-x-0 inset-y-0 bg-[radial-gradient(circle_at_50%_50%,rgba(98,111,88,0.14),transparent_70%)] pointer-events-none animate-pulse duration-[5000ms]" />
+                    
+                    <div className="relative flex items-center justify-center mb-4">
+                      {isSoundBathPlaying && (
+                        <>
+                          <span className="absolute w-28 h-28 rounded-full bg-primary/15 animate-ping duration-[4000ms]" />
+                          <span className="absolute w-24 h-24 rounded-full bg-secondary/10 animate-pulse duration-[2000ms]" />
+                        </>
+                      )}
+                      {conversation.avatar ? (
+                        <img 
+                          src={conversation.avatar} 
+                          alt={conversation.name} 
+                          className="w-20 h-20 rounded-full object-cover border-2 border-primary/20 shadow-xl relative z-10"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div className="w-20 h-20 rounded-full bg-primary/20 border-2 border-primary/20 shadow-xl relative z-10 flex items-center justify-center text-primary text-xl font-bold font-headline">
+                          {conversation.name.split(' ').map(n => n[0]).join('')}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-
-                <div>
-                  <h2 className="text-xl font-headline font-semibold text-white mb-1">{conversation.name}</h2>
-                  <p className="text-xs text-outline tracking-wider uppercase font-mono">{conversation.subLabel || "Wellness Companion"}</p>
-                </div>
-
-                {/* Solfeggio sound particle visualization */}
-                {isSoundBathPlaying && (
-                  <div className="flex gap-1 h-8 items-end justify-center transition-all">
-                    {[...Array(12)].map((_, i) => (
-                      <span 
-                        key={i} 
-                        className="w-1 bg-gradient-to-t from-primary/60 to-secondary/80 rounded-full animate-bounce"
-                        style={{ 
-                          height: `${Math.floor(Math.random() * 24) + 8}px`,
-                          animationDelay: `${i * 120}ms`,
-                          animationDuration: `${1200 + (i % 3) * 300}ms`
-                        }}
-                      />
-                    ))}
+                    <div className="text-center z-10">
+                      <h4 className="font-headline font-semibold text-stone-100">{conversation.name}</h4>
+                      <p className="text-[10px] text-zinc-400 font-mono tracking-wider mt-0.5">{conversation.subLabel || "Wellness Companion"}</p>
+                    </div>
+                    {/* Name tag at bottom left */}
+                    <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-lg border border-white/5 text-[9px] uppercase tracking-wider font-mono text-zinc-300">
+                      Companion (Remote)
+                    </div>
                   </div>
-                )}
-              </div>
-            ) : (
-              <div 
-                onClick={() => setIsLocalVideoSwapped(false)}
-                className="flex flex-col items-center justify-center z-10 my-auto text-center gap-3 relative bg-black/50 backdrop-blur-md px-6 py-4 rounded-3xl border border-white/15 max-w-sm mx-auto cursor-pointer hover:bg-black/60 transition-colors"
-              >
-                <Activity className="w-8 h-8 text-secondary animate-pulse" />
-                <span className="text-xs uppercase font-mono tracking-widest text-emerald-300 font-semibold">Local Stream Primary</span>
-                <p className="text-[10px] text-stone-300">Self-view is maximized. Click anyway here to minimize.</p>
-              </div>
-            )}
 
-            {/* Bottom Guideline Box */}
+                  {/* Local Participant Box */}
+                  <div className="bg-[#1e1f22] border border-white/5 rounded-2xl flex flex-col items-center justify-center p-6 relative overflow-hidden group hover:border-[#38ef7d]/30 transition-all">
+                    {isVideoEnabled ? (
+                      <video 
+                        ref={(el) => {
+                          localVideoRef.current = el;
+                          if (el && localStreamRef.current) {
+                            el.srcObject = localStreamRef.current;
+                          }
+                        }}
+                        autoPlay 
+                        playsInline 
+                        muted 
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="relative flex items-center justify-center mb-4">
+                        <div className="w-20 h-20 rounded-full bg-zinc-800 border-2 border-white/5 flex items-center justify-center text-zinc-400 text-xl font-bold font-headline animate-pulse">
+                          {userName ? userName.split(' ').map(n => n[0]).join('') : 'U'}
+                        </div>
+                      </div>
+                    )}
+                    <div className="text-center z-10 bg-black/40 backdrop-blur-sm px-3 py-1.5 rounded-xl border border-white/5 mt-auto mb-2">
+                      <h4 className="font-headline font-semibold text-stone-100 text-xs">{userName} (You)</h4>
+                      <p className="text-[9px] text-zinc-400 font-mono tracking-widest uppercase mt-0.5">
+                        {isVideoEnabled ? 'Video enabled' : 'Camera off'}
+                      </p>
+                    </div>
+                    {/* Name tag at bottom left */}
+                    <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-lg border border-white/5 text-[9px] uppercase tracking-wider font-mono text-zinc-300">
+                      Local Feed {isMicMuted && "• Muted"}
+                    </div>
+                  </div>
+
+                </div>
+              ) : (
+                /* WHATSAPP PIP OVERLAY LAYOUT */
+                <div className="relative w-full h-full rounded-2xl overflow-hidden bg-[#151618] border border-white/5">
+                  {/* Full screen Background Stream (either remote or local based on swap state) */}
+                  <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center">
+                    
+                    {!isLocalVideoSwapped ? (
+                      /* Remote is full screen, local is PIP */
+                      <div className="flex flex-col items-center justify-center p-6 text-center w-full h-full relative">
+                        {/* Elegant wave background */}
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(98,111,88,0.14),transparent_65%)] pointer-events-none" />
+                        
+                        <div className="relative flex items-center justify-center mb-4">
+                          {isSoundBathPlaying && (
+                            <span className="absolute w-32 h-32 rounded-full bg-primary/20 animate-ping duration-[3000ms]" />
+                          )}
+                          {conversation.avatar ? (
+                            <img 
+                              src={conversation.avatar} 
+                              alt={conversation.name} 
+                              className="w-24 h-24 rounded-full object-cover border-4 border-white/10 shadow-2xl relative z-10"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <div className="w-24 h-24 rounded-full bg-primary/20 border-4 border-white/10 shadow-2xl relative z-10 flex items-center justify-center text-primary text-xl font-bold font-headline">
+                              {conversation.name.split(' ').map(n => n[0]).join('')}
+                            </div>
+                          )}
+                        </div>
+                        <h2 className="text-xl font-headline font-semibold text-white">{conversation.name}</h2>
+                        <p className="text-xs text-zinc-400 font-mono uppercase tracking-widest mt-1">{conversation.subLabel || "Wellness Companion"}</p>
+                        
+                        {/* Name tag at bottom left */}
+                        <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/5 text-xs text-zinc-300">
+                          {conversation.name} (Remote Stream)
+                        </div>
+                      </div>
+                    ) : (
+                      /* Local is full screen (user video or avatar), remote is PIP */
+                      <div className="w-full h-full relative flex items-center justify-center bg-neutral-900">
+                        {isVideoEnabled ? (
+                          <video 
+                            ref={(el) => {
+                              localVideoRef.current = el;
+                              if (el && localStreamRef.current) {
+                                el.srcObject = localStreamRef.current;
+                              }
+                            }}
+                            autoPlay 
+                            playsInline 
+                            muted 
+                            className="absolute inset-0 w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex flex-col items-center justify-center">
+                            <div className="w-24 h-24 rounded-full bg-zinc-800 border-4 border-white/10 flex items-center justify-center text-zinc-400 text-3xl font-headline font-bold">
+                              {userName ? userName.split(' ').map(n => n[0]).join('') : 'U'}
+                            </div>
+                            <h2 className="text-stone-200 mt-4 font-headline text-lg">{userName} (You)</h2>
+                            <p className="text-xs text-zinc-400">Your camera is off</p>
+                          </div>
+                        )}
+                        
+                        {/* Name tag at bottom left */}
+                        <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/5 text-xs text-zinc-300">
+                          {userName} (Your Stream Max-viewed)
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* WhatsApp-style Floating PiP window */}
+                  <div 
+                    onClick={() => setIsLocalVideoSwapped(!isLocalVideoSwapped)}
+                    className="absolute bottom-4 right-4 z-20 w-32 md:w-44 aspect-[3/4] bg-[#1e1f22] rounded-2xl border-2 border-white/10 shadow-2xl overflow-hidden cursor-pointer hover:scale-105 hover:border-primary/50 transition-all flex flex-col justify-center items-center"
+                    title="Click to swap feeds"
+                  >
+                    {!isLocalVideoSwapped ? (
+                      /* Floating box displays My Stream */
+                      isVideoEnabled ? (
+                        <video 
+                          ref={(el) => {
+                            localVideoRef.current = el;
+                            if (el && localStreamRef.current) {
+                              el.srcObject = localStreamRef.current;
+                            }
+                          }}
+                          autoPlay 
+                          playsInline 
+                          muted 
+                          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                        />
+                      ) : (
+                        <div className="text-center p-3">
+                          <div className="w-12 h-12 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 text-xs font-semibold mx-auto mb-1">
+                            {userName ? userName.split(' ').map(n => n[0]).join('') : 'U'}
+                          </div>
+                          <span className="text-[8px] text-zinc-400 block tracking-tight">Camera Off</span>
+                        </div>
+                      )
+                    ) : (
+                      /* Floating box displays Companion Stream */
+                      <div className="text-center p-3">
+                        {conversation.avatar ? (
+                          <img 
+                            src={conversation.avatar} 
+                            alt={conversation.name} 
+                            className="w-12 h-12 rounded-full object-cover mx-auto mb-1 border border-white/5"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-semibold mx-auto mb-1">
+                            {conversation.name.split(' ').map(n => n[0]).join('')}
+                          </div>
+                        )}
+                        <span className="text-[8px] text-zinc-300 block font-mono truncate">{conversation.name}</span>
+                      </div>
+                    )}
+                    
+                    {/* PIP label banner */}
+                    <div className="absolute bottom-1 right-1 bg-black/80 px-1.5 py-0.5 rounded text-[7px] text-zinc-400 uppercase font-mono tracking-wider pointer-events-none">
+                      Swap Click
+                    </div>
+                  </div>
+
+                </div>
+              )}
+
+            </div>
+
+            {/* Bottom: Tips / Guidance Banner */}
             {showGuidanceTips && (
-              <div className="z-10 mt-auto bg-black/50 backdrop-blur-md p-4 rounded-2xl border border-white/5 w-full flex items-center gap-3 animate-fade-in">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+              <div className="z-10 bg-black/40 backdrop-blur-md p-3.5 rounded-2xl border border-white/5 w-full flex items-center gap-3 animate-fade-in">
+                <div className="w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center text-primary shrink-0">
                   <Sparkles className="w-4 h-4 text-primary" />
                 </div>
-                <p className="text-xs text-stone-200 text-left leading-relaxed">
+                <p id="video-guidance-content" className="text-xs text-stone-200 text-left leading-relaxed">
                   {videoCallGuidance}
                 </p>
               </div>
             )}
+
+            {/* FLOATING ACTION PILBAR: High design standard like MS Teams/WhatsApp */}
+            <div className="mt-4 flex justify-center w-full z-25">
+              <div className="bg-[#1e1f22]/90 backdrop-blur-xl border border-white/10 rounded-full px-5 py-3 shadow-2xl flex items-center gap-3 md:gap-4 max-w-full">
+                
+                {/* Mute Mic Icon Button */}
+                <button 
+                  onClick={() => setIsMicMuted(!isMicMuted)}
+                  className={`p-3 rounded-full border transition-all cursor-pointer ${
+                    isMicMuted 
+                      ? 'bg-red-500/20 border-red-500/40 text-red-400 hover:bg-red-500/30' 
+                      : 'bg-zinc-800 border-zinc-700/50 hover:bg-zinc-750 text-zinc-200'
+                  }`}
+                  title={isMicMuted ? "Unmute Microphone" : "Mute Microphone"}
+                >
+                  {isMicMuted ? <MicOff className="w-4.5 h-4.5" /> : <Mic className="w-4.5 h-4.5" />}
+                </button>
+
+                {/* Camera Toggle Icon Button */}
+                <button 
+                  onClick={toggleVideo}
+                  className={`p-3 rounded-full border transition-all cursor-pointer ${
+                    !isVideoEnabled 
+                      ? 'bg-red-500/20 border-red-500/40 text-red-400 hover:bg-red-500/30' 
+                      : 'bg-zinc-800 border-zinc-700/50 hover:bg-zinc-750 text-zinc-200'
+                  }`}
+                  title={isVideoEnabled ? "Turn Camera Off" : "Turn Camera On"}
+                >
+                  {isVideoEnabled ? <Camera className="w-4.5 h-4.5" /> : <VideoOff className="w-4.5 h-4.5" />}
+                </button>
+
+                {/* Gongs Toggle Indicator */}
+                <button 
+                  onClick={toggleSoundBath}
+                  className={`p-3 rounded-full border transition-all cursor-pointer ${
+                    isSoundBathPlaying 
+                      ? 'bg-secondary/20 border-secondary/40 text-secondary hover:bg-secondary/35' 
+                      : 'bg-zinc-800 border-zinc-700/50 hover:bg-zinc-750 text-zinc-200'
+                  }`}
+                  title={isSoundBathPlaying ? "Mute Solfeggio Gongs" : "Activate Solfeggio Gongs"}
+                >
+                  {isSoundBathPlaying ? <Volume2 className="w-4.5 h-4.5 animate-pulse" /> : <VolumeX className="w-4.5 h-4.5" />}
+                </button>
+
+                {/* View Layout Toggle button */}
+                <button 
+                  onClick={() => setCallLayout(callLayout === 'grid' ? 'pip' : 'grid')}
+                  className={`p-3 rounded-full border transition-all hover:bg-zinc-750 text-zinc-200 cursor-pointer ${
+                    callLayout === 'pip' ? 'bg-[#3c3d42] border-zinc-500' : 'bg-zinc-800 border-zinc-700/50'
+                  }`}
+                  title="Toggle layout view (Grid / PiP)"
+                >
+                  <LayoutGrid className="w-4.5 h-4.5" />
+                </button>
+
+                {/* Right Sidebar toggle Button */}
+                <button
+                  onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                  className={`p-3 rounded-full border transition-all hover:bg-zinc-750 text-zinc-200 cursor-pointer ${
+                    isSidebarOpen ? 'bg-primary/20 border-primary/40 text-primary' : 'bg-zinc-800 border-zinc-700/50'
+                  }`}
+                  title="Toggle Settings & Bio Panel"
+                >
+                  <Settings className="w-4.5 h-4.5" />
+                </button>
+
+                {/* Dividers */}
+                <span className="w-px h-6 bg-white/10" />
+
+                {/* Big Hang up Disconnect button */}
+                <button 
+                  onClick={handleLeaveCall}
+                  className="bg-red-600 hover:bg-red-500 active:scale-95 text-white p-3.5 rounded-full flex items-center justify-center transition-all hover:shadow-[0_0_20px_rgba(239,68,68,0.4)] cursor-pointer"
+                  title="Disconnect Presence Session"
+                >
+                  <PhoneOff className="w-5 h-5 text-white" />
+                </button>
+
+              </div>
+            </div>
+
           </div>
 
-          {/* Right Panel: Local Feed, Soundbath Synth & Stats */}
-          <div className="w-full md:w-80 shrink-0 flex flex-col gap-4 md:gap-5 justify-between">
-            {/* Visual Stream Local Viewport */}
-            <div 
-              onClick={() => isVideoEnabled && setIsLocalVideoSwapped(!isLocalVideoSwapped)}
-              className={`bg-neutral-900/60 rounded-3xl p-4 border border-white/5 relative overflow-hidden aspect-[4/3] flex flex-col items-center justify-center transition-all ${isVideoEnabled ? 'cursor-pointer hover:border-primary/40 hover:bg-neutral-800/80' : ''}`}
-              title={isVideoEnabled ? (isLocalVideoSwapped ? "Minimize your preview" : "Maximize your preview") : "Camera is inactive"}
-            >
-              {!isLocalVideoSwapped ? (
-                isVideoEnabled ? (
-                  <video 
-                    ref={(el) => {
-                      localVideoRef.current = el;
-                      if (el && localStreamRef.current) {
-                        el.srcObject = localStreamRef.current;
-                      }
-                    }}
-                    autoPlay 
-                    playsInline 
-                    muted 
-                    className="absolute inset-x-0 inset-y-0 w-full h-full object-cover rounded-2xl"
-                  />
-                ) : (
-                  <div className="text-center flex flex-col items-center gap-3">
-                    <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-primary/30 to-secondary/30 flex items-center justify-center text-primary border border-white/10 animate-pulse">
-                      <Activity className="w-6 h-6 text-primary" />
-                    </div>
-                    <div>
-                      <span className="text-[10px] uppercase font-mono tracking-wider font-semibold text-primary">{userName} (You)</span>
-                      <p className="text-xs text-outline mt-0.5">Aura Avatar Stream Only</p>
-                    </div>
+          {/* Right Panel/Teams Side Panel: Local Feed, Bio-data, Soundbath Synth & Stats */}
+          {isSidebarOpen && (
+            <div id="video-call-sidebar" className="w-full md:w-80 shrink-0 bg-[#1e1f22] border border-white/5 rounded-3xl p-5 flex flex-col justify-between gap-5 animate-fade-in overflow-y-auto">
+              <div>
+                {/* Header */}
+                <div className="flex items-center justify-between border-b border-white/5 pb-3.5 mb-4">
+                  <div className="flex items-center gap-2">
+                    <Activity className="w-4.5 h-4.5 text-primary" />
+                    <span className="text-xs font-semibold uppercase tracking-wider font-mono text-zinc-200">Resonance Companion</span>
                   </div>
-                )
-              ) : (
-                <div className="text-center flex flex-col items-center gap-2 animate-fade-in">
-                  <div className="relative">
-                    <span className="absolute -inset-1 rounded-full bg-secondary/10 animate-ping duration-[3000ms]" />
-                    {conversation.avatar ? (
-                      <img 
-                        src={conversation.avatar} 
-                        alt={conversation.name} 
-                        className="w-12 h-12 rounded-full object-cover border border-white/20 relative z-10"
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-primary/20 border border-white/20 relative z-10 flex items-center justify-center text-primary text-xs font-semibold">
-                        {conversation.name.split(' ').map(n => n[0]).join('')}
+                  <button 
+                    onClick={() => setIsSidebarOpen(false)}
+                    className="p-1 rounded-lg hover:bg-white/5 text-zinc-400 hover:text-white transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Bio-Coherence statistics */}
+                <div className="flex flex-col gap-4">
+                  <div className="bg-black/20 rounded-2xl p-4 border border-white/5">
+                    <span className="text-[10px] uppercase font-mono tracking-widest text-zinc-400 block mb-1">Heart Rhythm Coherence</span>
+                    <div className="flex items-end justify-between gap-3 mt-1">
+                      <div>
+                        <span className="text-2xl font-mono font-bold text-primary leading-none">{heartCoherence}%</span>
+                        <p className="text-[10px] text-zinc-400 mt-0.5">Bio-sync alignment</p>
                       </div>
-                    )}
+                      
+                      {/* Active wave visualization graph */}
+                      <div className="flex h-8 items-end gap-0.5 overflow-hidden pb-1 w-20">
+                        {[...Array(8)].map((_, i) => (
+                          <span 
+                            key={i} 
+                            className="w-1 bg-primary/70 rounded-full animate-bounce"
+                            style={{ 
+                              height: `${Math.floor(Math.random() * 20) + 4}px`,
+                              animationDelay: `${i * 100}ms`
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
                   </div>
+
+                  <div className="bg-black/20 rounded-2xl p-4 border border-white/5">
+                    <span className="text-[10px] uppercase font-mono tracking-widest text-zinc-400 block mb-1">Breathing Pacing</span>
+                    <div className="flex items-center justify-between mt-1">
+                      <div>
+                        <span className="text-lg font-mono font-bold text-secondary">{Math.floor(activeSessionTimer / 8)}</span>
+                        <p className="text-[10px] text-zinc-400 mt-0.5 font-sans leading-none">Mindful deep breaths</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xs font-mono font-semibold text-teal-400 bg-teal-500/10 px-2.5 py-1 rounded-full">5.5s Cycle</span>
+                        <p className="text-[10px] text-zinc-400 mt-1 uppercase font-mono tracking-wider">Perfect Pacing</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Ambient Sound Settings inside Panels */}
+                <div className="mt-5 space-y-4">
                   <div>
-                    <span className="text-[10px] uppercase font-mono tracking-wider font-semibold text-secondary">{conversation.name}</span>
-                    <p className="text-[9px] text-outline">Wellness Companion</p>
+                    <span className="text-[10px] uppercase font-mono tracking-wider text-zinc-400">Solfeggio Frequency tuning</span>
+                    <div className="grid grid-cols-3 gap-1.5 mt-2">
+                      {[396, 528, 639].map((freq) => (
+                        <button
+                          key={freq}
+                          onClick={() => setSolfeggioFreq(freq)}
+                          className={`py-2 rounded-xl text-[10px] font-mono transition-all border cursor-pointer ${
+                            solfeggioFreq === freq 
+                              ? 'bg-primary text-neutral-900 border-primary font-bold shadow-md shadow-primary/10' 
+                              : 'bg-black/20 border-white/5 hover:bg-neutral-800 text-stone-300'
+                          }`}
+                        >
+                          {freq}Hz
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between items-center text-[10px] font-mono text-zinc-400 mb-2">
+                      <span>Sound Bath Volume</span>
+                      <span>{soundVolume}%</span>
+                    </div>
+                    <input 
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={soundVolume}
+                      onChange={(e) => setSoundVolume(Number(e.target.value))}
+                      className="w-full accent-primary bg-zinc-800 h-1.5 rounded-lg outline-none"
+                    />
                   </div>
                 </div>
-              )}
-              {/* Overlay Label */}
-              <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md px-3 py-1 rounded-xl border border-white/5 text-[9px] uppercase tracking-wider font-mono">
-                {!isLocalVideoSwapped ? "Local Presence" : `${conversation.name} Corner`}
-              </div>
-            </div>
 
-            {/* Bio-Coherence Vitality Status */}
-            <div className="bg-neutral-900/40 rounded-3xl p-5 border border-white/5 flex flex-col gap-4">
-              <span className="text-[10px] uppercase font-mono tracking-widest text-outline">Bio-coherence indicators</span>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-2xl font-mono font-bold text-primary leading-none">{heartCoherence}%</span>
-                  <p className="text-[10px] text-outline mt-0.5">Heart Sync Score</p>
-                </div>
-                <div className="flex h-6 w-16 items-center gap-0.5 overflow-hidden">
-                  {[...Array(6)].map((_, i) => (
-                    <span 
-                      key={i} 
-                      className="w-1 bg-primary/70 rounded-full"
-                      style={{ 
-                        height: `${Math.floor(Math.random() * 16) + 4}px`
-                      }}
-                    />
-                  ))}
+              </div>
+
+              {/* Action Section block inside Sidebar */}
+              <div className="space-y-3 mt-auto font-sans">
+                <button 
+                  onClick={toggleSoundBath}
+                  className={`w-full py-3.5 px-4 rounded-2xl flex items-center justify-center gap-3 font-mono font-bold text-[11px] uppercase tracking-wider transition-all cursor-pointer ${
+                    isSoundBathPlaying 
+                      ? 'bg-secondary text-neutral-950 shadow-lg shadow-secondary/20 hover:scale-[1.01]' 
+                      : 'bg-white/5 hover:bg-white/10 text-stone-200 border border-white/5'
+                  }`}
+                >
+                  {isSoundBathPlaying ? <Volume2 className="w-4 h-4 animate-bounce" /> : <VolumeX className="w-4 h-4" />}
+                  <span>{isSoundBathPlaying ? "Active Solfeggio Gongs" : "Muted Solfeggio Gongs"}</span>
+                </button>
+                <div className="bg-black/15 p-3 rounded-2xl text-[10px] text-zinc-400 leading-normal text-left">
+                  Configure real-time Solfeggio frequencies & audio gongs to maximize stress alignment during the connection call.
                 </div>
               </div>
 
-              <div className="h-px bg-white/5 w-full" />
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-lg font-mono font-bold text-secondary">{Math.floor(activeSessionTimer / 8)}</span>
-                  <p className="text-[10px] text-outline mt-0.5">Clock Deep Breaths</p>
-                </div>
-                <div className="text-right">
-                  <span className="text-xs font-semibold text-stone-300">Optimal (5.5s)</span>
-                  <p className="text-[10px] text-outline mt-0.5">Pacing Cycle</p>
-                </div>
-              </div>
             </div>
-
-            {/* Sound Bath Controls */}
-            <button 
-              onClick={toggleSoundBath}
-              className={`w-full py-3.5 px-4 rounded-2xl flex items-center justify-center gap-3 font-mono font-bold text-xs uppercase tracking-widest transition-all cursor-pointer ${
-                isSoundBathPlaying 
-                  ? 'bg-secondary text-neutral-950 shadow-lg shadow-secondary/20 hover:scale-[1.01]' 
-                  : 'bg-white/5 hover:bg-white/10 text-stone-200 border border-white/5'
-              }`}
-            >
-              {isSoundBathPlaying ? <Volume2 className="w-4 h-4 animate-bounce" /> : <VolumeX className="w-4 h-4" />}
-              <span>{isSoundBathPlaying ? "Active Solfeggio Gongs" : "Muted Solfeggio Gongs"}</span>
-            </button>
-
-            {/* Bottom Call controls and hangup */}
-            <div className="flex gap-3 justify-between">
-              <button 
-                onClick={() => setIsMicMuted(!isMicMuted)}
-                className={`flex-1 py-3.5 rounded-2xl flex items-center justify-center border transition-all cursor-pointer ${
-                  isMicMuted 
-                    ? 'bg-red-500/10 border-red-500/20 text-red-400' 
-                    : 'bg-white/5 hover:bg-white/10 border-white/5 text-stone-200'
-                }`}
-                title="Mute/Unmute Mic"
-              >
-                {isMicMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-              </button>
-
-              <button 
-                onClick={toggleVideo}
-                className={`flex-1 py-3.5 rounded-2xl flex items-center justify-center border transition-all cursor-pointer ${
-                  isVideoEnabled 
-                    ? 'bg-primary/20 border-primary/30 text-primary' 
-                    : 'bg-white/5 hover:bg-white/10 border-white/5 text-stone-200'
-                }`}
-                title="Enable/Disable Video Stream"
-              >
-                {isVideoEnabled ? <Camera className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
-              </button>
-
-              <button 
-                onClick={handleLeaveCall}
-                className="flex-[1.8] bg-red-500 hover:bg-red-600 active:scale-95 text-white py-3.5 rounded-2xl flex items-center justify-center gap-2 font-mono font-bold text-xs uppercase tracking-widest transition-all shadow-lg shadow-red-500/20 cursor-pointer"
-                title="End Presence Session"
-              >
-                <PhoneOff className="w-4 h-4" />
-                <span>Disconnect</span>
-              </button>
-            </div>
-          </div>
+          )}
         </div>
       )}
 
       {/* Immersive Full Screen Audio Sanctuary Call Overlay */}
       {showAudioCall && (
-        <div className="fixed inset-0 bg-stone-950/95 backdrop-blur-2xl z-50 flex flex-col md:flex-row p-4 md:p-6 gap-4 md:gap-6 text-white animate-fade-in font-sans">
-          {/* Main Sound Wave & Aura Viewport */}
-          <div className="flex-grow flex flex-col justify-between bg-stone-900/40 rounded-3xl p-5 border border-white/5 relative overflow-hidden min-h-[350px] md:min-h-[450px]">
+        <div id="audio-call-parent" className="fixed inset-0 bg-[#0b0c0e] z-50 flex p-4 md:p-6 gap-4 md:gap-6 text-white animate-fade-in font-sans overflow-hidden">
+          
+          {/* Main Audio Call Area */}
+          <div className="flex-grow flex flex-col justify-between bg-[#111214] border border-white/5 rounded-3xl p-5 relative overflow-hidden min-h-[450px]">
             {/* Background Moving Energy Aura for Sound Stream */}
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(139,150,129,0.12),transparent_60%)] pointer-events-none animate-pulse duration-[8000ms] z-0" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(139,150,129,0.08),transparent_70%)] pointer-events-none animate-pulse duration-[8000ms] z-0" />
             
-            {/* Upper Status Row */}
+            {/* Upper Status Row: Teams/WhatsApp style */}
             <div className="flex items-center justify-between z-10 w-full">
-              <div className="flex items-center gap-3 bg-stone-950/60 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/5">
+              <div className="flex items-center gap-3 bg-[#1e1f22]/90 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/5">
                 <div className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
-                <span className="text-[10px] uppercase font-mono tracking-widest font-semibold text-primary">Mindful Voice Alignment Active</span>
+                <span className="text-[10px] uppercase font-mono tracking-widest font-semibold text-zinc-300">Secure Audio Session</span>
               </div>
-              <div className="bg-stone-950/60 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/5 font-mono text-xs font-semibold text-primary-variant">
+              <div className="bg-[#1e1f22]/90 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/5 font-mono text-xs font-semibold text-primary">
                 {String(Math.floor(activeSessionTimer / 60)).padStart(2, '0')}:{String(activeSessionTimer % 60).padStart(2, '0')}
               </div>
             </div>
 
-            {/* Central Holographic Pulsing Audio Orb */}
+            {/* Central Holographic Pulsing Audio Orb (Teams-style Speaker Card) */}
             <div className="flex flex-col items-center justify-center z-10 my-auto text-center gap-6 relative">
               <div className="relative flex items-center justify-center">
-                {/* Microtonal breath pulsing layers */}
-                <span className={`absolute w-44 h-44 rounded-full bg-primary/10 transition-transform duration-[4000ms] ease-in-out ${isMicMuted ? 'scale-90' : 'animate-ping'}`} />
-                <span className="absolute w-36 h-36 rounded-full bg-secondary/10 animate-pulse duration-[3000ms]" />
+                {/* Multiphasic halo breathing layers */}
+                <span className={`absolute w-44 h-44 rounded-full bg-primary/5 transition-transform duration-[4000ms] ease-in-out ${isMicMuted ? 'scale-90' : 'animate-ping'}`} />
+                <span className={`absolute w-36 h-36 rounded-full bg-secondary/5 transition-all duration-[3000ms] ${isMicMuted ? 'opacity-20' : 'animate-pulse'}`} />
 
                 {conversation.avatar ? (
                   <img 
                     src={conversation.avatar} 
                     alt={conversation.name} 
-                    className="w-28 h-28 rounded-full object-cover border-[3px] border-primary/20 shadow-[0_0_50px_rgba(139,150,129,0.15)] relative z-10 hover:scale-105 transition-transform duration-500"
+                    className="w-28 h-28 rounded-full object-cover border-[3px] border-white/5 shadow-[0_0_60px_rgba(139,150,129,0.15)] relative z-10 hover:scale-105 transition-transform duration-500"
                     referrerPolicy="no-referrer"
                   />
                 ) : (
-                  <div className="w-28 h-28 rounded-full bg-primary/20 border-[3px] border-primary/20 shadow-2xl relative z-10 flex items-center justify-center text-primary text-2xl font-bold font-headline">
+                  <div className="w-28 h-28 rounded-full bg-zinc-800 border-[3px] border-zinc-700 shadow-2xl relative z-10 flex items-center justify-center text-primary text-2xl font-bold">
                     {conversation.name.split(' ').map(n => n[0]).join('')}
                   </div>
                 )}
               </div>
 
               <div>
-                <span className="text-[10px] text-primary font-mono tracking-widest uppercase font-semibold">Voice Stream Synced</span>
-                <h2 className="text-2xl font-headline font-semibold text-stone-100 mt-1 mb-1">{conversation.name}</h2>
-                <p className="text-xs text-outline tracking-wider uppercase font-mono">{conversation.subLabel || "Wellness Companion"}</p>
+                <span className="text-[10px] text-primary font-mono tracking-widest uppercase font-semibold">Voice Stream Connected</span>
+                <h2 className="text-2xl font-headline font-semibold text-zinc-100 mt-1.5 mb-1">{conversation.name}</h2>
+                <span className="text-[11px] text-zinc-400 font-sans tracking-wide">{conversation.subLabel || "Connection Companion"}</span>
               </div>
 
               {/* Active Voice Waveform Visualizer */}
-              <div className="flex gap-1.5 h-10 items-center justify-center mt-2 max-w-xs mx-auto px-4 py-1.5 rounded-full bg-stone-950/30 border border-white/5 backdrop-blur-sm">
+              <div className="flex gap-1.5 h-11 items-center justify-center mt-3 max-w-xs mx-auto px-5 py-2 rounded-2xl bg-black/40 border border-white/5 backdrop-blur-md">
                 {[...Array(14)].map((_, i) => (
                   <span 
                     key={i} 
-                    className={`w-1 rounded-full transition-all duration-300 ${isMicMuted ? 'bg-stone-600 h-1' : 'bg-gradient-to-t from-primary/70 to-secondary/80 animate-bounce'}`}
+                    className={`w-1 rounded-full transition-all duration-300 ${isMicMuted ? 'bg-zinc-700 h-1' : 'bg-gradient-to-t from-primary to-secondary animate-bounce'}`}
                     style={{ 
-                      height: isMicMuted ? '4px' : `${Math.floor(Math.random() * 24) + 6}px`,
-                      animationDelay: `${i * 70}ms`,
-                      animationDuration: `${800 + (i % 4) * 200}ms`
+                      height: isMicMuted ? '4px' : `${Math.floor(Math.random() * 26) + 6}px`,
+                      animationDelay: `${i * 65}ms`,
+                      animationDuration: `${750 + (i % 4) * 200}ms`
                     }}
                   />
                 ))}
               </div>
             </div>
 
-            {/* Bottom Guidance Box */}
+            {/* Bottom Guidance Area / Tips */}
             {showGuidanceTips && (
-              <div className="z-10 mt-auto bg-stone-950/55 backdrop-blur-md p-4 rounded-2xl border border-white/5 w-full flex items-center gap-3 animate-fade-in">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+              <div className="z-10 mt-auto bg-[#1e1f22]/50 backdrop-blur-md p-4 rounded-2xl border border-white/5 w-full flex items-center gap-3 animate-fade-in">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0 animate-pulse">
                   <Sparkles className="w-4 h-4 text-primary" />
                 </div>
-                <p className="text-xs text-stone-200 text-left leading-relaxed">
+                <p className="text-xs text-zinc-300 text-left leading-relaxed">
                   {audioCallGuidance}
                 </p>
               </div>
             )}
+
+            {/* FLOATING ACTION PILBAR: High design standard like MS Teams/WhatsApp */}
+            <div className="mt-4 flex justify-center w-full z-25">
+              <div className="bg-[#1e1f22]/90 backdrop-blur-xl border border-white/10 rounded-full px-5 py-3 shadow-2xl flex items-center gap-3 md:gap-4 max-w-full">
+                
+                {/* Mute Mic Icon Button */}
+                <button 
+                  onClick={() => setIsMicMuted(!isMicMuted)}
+                  className={`p-3 rounded-full border transition-all cursor-pointer ${
+                    isMicMuted 
+                      ? 'bg-red-500/20 border-red-500/40 text-red-400 hover:bg-red-500/30' 
+                      : 'bg-zinc-800 border-zinc-700/50 hover:bg-zinc-750 text-zinc-200'
+                  }`}
+                  title={isMicMuted ? "Unmute Microphone" : "Mute Microphone"}
+                >
+                  {isMicMuted ? <MicOff className="w-4.5 h-4.5" /> : <Mic className="w-4.5 h-4.5" />}
+                </button>
+
+                {/* Companion Sidebar toggle Button */}
+                <button
+                  onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                  className={`p-3 rounded-full border transition-all hover:bg-zinc-750 text-zinc-200 cursor-pointer ${
+                    isSidebarOpen ? 'bg-primary/20 border-primary/40 text-primary' : 'bg-zinc-800 border-zinc-700/50'
+                  }`}
+                  title="Toggle Settings & Bio Panel"
+                >
+                  <Settings className="w-4.5 h-4.5" />
+                </button>
+
+                {/* Divider lines */}
+                <span className="w-px h-6 bg-white/10" />
+
+                {/* Disconnect/Hangup button */}
+                <button 
+                  onClick={handleLeaveAudioCall}
+                  className="bg-red-600 hover:bg-red-500 active:scale-95 text-white p-3.5 rounded-full flex items-center justify-center transition-all hover:shadow-[0_0_20px_rgba(239,68,68,0.4)] cursor-pointer"
+                  title="Disconnect Presence Session"
+                >
+                  <PhoneOff className="w-5 h-5 text-white" />
+                </button>
+
+              </div>
+            </div>
+
           </div>
 
-          {/* Right Panel: Call dashboard, Soundbath Synth & Stats */}
-          <div className="w-full md:w-80 shrink-0 flex flex-col gap-4 md:gap-5 justify-between">
-            {/* Static Immersive Voice Branding Box */}
-            <div className="bg-stone-900/40 rounded-3xl p-5 border border-white/5 flex flex-col items-center justify-center text-center py-6 gap-3">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-primary/20 to-secondary/20 flex items-center justify-center text-primary border border-white/10">
-                <Mic className="w-5 h-5 text-primary" />
-              </div>
+          {/* Right Panel/Teams Side Panel: Companion stats & volume control */}
+          {isSidebarOpen && (
+            <div id="audio-call-sidebar" className="w-full md:w-80 shrink-0 bg-[#111214] border border-white/5 rounded-3xl p-5 flex flex-col justify-between gap-5 animate-fade-in overflow-y-auto">
               <div>
-                <span className="text-[10px] uppercase font-mono tracking-wider font-semibold text-primary">{userName} (You)</span>
-                <p className="text-xs text-outline mt-0.5">Secure Mic Stream {isMicMuted ? "Muted" : "Active"}</p>
-              </div>
-            </div>
-
-            {/* Wellness Bio-Coherence Statistics */}
-            <div className="bg-stone-900/20 rounded-3xl p-5 border border-white/5 flex flex-col gap-4">
-              <span className="text-[10px] uppercase font-mono tracking-widest text-outline">Bio-resonance alignment</span>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-2xl font-mono font-bold text-primary leading-none">{heartCoherence}%</span>
-                  <p className="text-[10px] text-outline mt-0.5">Vocal Sync Score</p>
+                {/* Header */}
+                <div className="flex items-center justify-between border-b border-white/5 pb-3.5 mb-4">
+                  <div className="flex items-center gap-2">
+                    <Activity className="w-4.5 h-4.5 text-primary" />
+                    <span className="text-xs font-semibold uppercase tracking-wider font-mono text-zinc-300">Acoustic Companion</span>
+                  </div>
+                  <button 
+                    onClick={() => setIsSidebarOpen(false)}
+                    className="p-1 rounded-lg hover:bg-white/5 text-zinc-400 hover:text-white transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
-                <div className="flex h-6 w-16 items-center gap-0.5 overflow-hidden">
-                  {[...Array(6)].map((_, i) => (
-                    <span 
-                      key={i} 
-                      className="w-1 bg-primary/50 rounded-full"
-                      style={{ 
-                        height: `${Math.floor(Math.random() * 16) + 4}px`
-                      }}
+
+                {/* Bio-Coherence stats */}
+                <div className="flex flex-col gap-4">
+                  <div className="bg-black/20 rounded-2xl p-4 border border-white/5">
+                    <span className="text-[10px] uppercase font-mono tracking-widest text-zinc-400 block mb-1">Aura Sync Alignment</span>
+                    <div className="flex items-end justify-between gap-3 mt-1">
+                      <div>
+                        <span className="text-2xl font-mono font-bold text-primary leading-none">{heartCoherence}%</span>
+                        <p className="text-[10px] text-zinc-400 mt-0.5">Frequency resonance</p>
+                      </div>
+                      
+                      {/* Active wave visualization graph */}
+                      <div className="flex h-8 items-end gap-0.5 overflow-hidden pb-1 w-20">
+                        {[...Array(8)].map((_, i) => (
+                          <span 
+                            key={i} 
+                            className="w-1 bg-primary/70 rounded-full animate-bounce"
+                            style={{ 
+                              height: `${Math.floor(Math.random() * 20) + 4}px`,
+                              animationDelay: `${i * 100}ms`
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-black/20 rounded-2xl p-4 border border-white/5">
+                    <span className="text-[10px] uppercase font-mono tracking-widest text-zinc-400 block mb-1">Mindful pacing rate</span>
+                    <div className="flex items-center justify-between mt-1">
+                      <div>
+                        <span className="text-lg font-mono font-bold text-secondary">{Math.floor(activeSessionTimer / 8)}</span>
+                        <p className="text-[10px] text-zinc-400 mt-0.5 font-sans leading-none">Cycles synchronized</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xs font-mono font-semibold text-teal-400 bg-teal-500/10 px-2.5 py-1 rounded-full">5.5s Cycle</span>
+                        <p className="text-[10px] text-zinc-400 mt-1 uppercase font-mono tracking-wider">Perfect breath</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Solfeggio Tuning */}
+                <div className="mt-5 space-y-4">
+                  <div>
+                    <span className="text-[10px] uppercase font-mono tracking-wider text-zinc-400">Solfeggio Frequency tuning</span>
+                    <div className="grid grid-cols-3 gap-1.5 mt-2">
+                      {[396, 528, 639].map((freq) => (
+                        <button
+                          key={freq}
+                          onClick={() => setSolfeggioFreq(freq)}
+                          className={`py-2 rounded-xl text-[10px] font-mono transition-all border cursor-pointer ${
+                            solfeggioFreq === freq 
+                              ? 'bg-primary text-neutral-900 border-primary font-bold shadow-md shadow-primary/10' 
+                              : 'bg-black/20 border-white/5 hover:bg-zinc-800 text-zinc-300'
+                          }`}
+                        >
+                          {freq}Hz
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between items-center text-[10px] font-mono text-zinc-400 mb-2">
+                      <span>Sound Bath Volume</span>
+                      <span>{soundVolume}%</span>
+                    </div>
+                    <input 
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={soundVolume}
+                      onChange={(e) => setSoundVolume(Number(e.target.value))}
+                      className="w-full accent-primary bg-zinc-800 h-1.5 rounded-lg outline-none"
                     />
-                  ))}
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Solfeggio Gongs Panel */}
+              <div className="space-y-3 mt-auto font-sans">
+                <button 
+                  onClick={toggleSoundBath}
+                  className={`w-full py-3.5 px-4 rounded-2xl flex items-center justify-center gap-3 font-mono font-bold text-[11px] uppercase tracking-wider transition-all cursor-pointer ${
+                    isSoundBathPlaying 
+                      ? 'bg-secondary text-neutral-950 shadow-lg shadow-secondary/20 hover:scale-[1.01]' 
+                      : 'bg-white/5 hover:bg-white/10 text-stone-200 border border-white/5'
+                  }`}
+                >
+                  {isSoundBathPlaying ? <Volume2 className="w-4 h-4 animate-bounce" /> : <VolumeX className="w-4 h-4" />}
+                  <span>{isSoundBathPlaying ? "Active Solfeggio Gongs" : "Muted Solfeggio Gongs"}</span>
+                </button>
+                <div className="bg-black/15 p-3 rounded-2xl text-[10px] text-zinc-400 leading-normal text-left">
+                  Align the companion sound gongs to maintain calm mental coherence on full-fidelity voice sync channels.
                 </div>
               </div>
 
-              <div className="h-px bg-white/5 w-full" />
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-lg font-mono font-bold text-secondary">{Math.floor(activeSessionTimer / 8)}</span>
-                  <p className="text-[10px] text-outline mt-0.5">Clock Inhalations</p>
-                </div>
-                <div className="text-right">
-                  <span className="text-xs font-semibold text-stone-300 font-mono">5.5s Cycle</span>
-                  <p className="text-[10px] text-outline mt-0.5">Mindful Pacing</p>
-                </div>
-              </div>
             </div>
+          )}
 
-            {/* Sound Bath Controls */}
-            <button 
-              onClick={toggleSoundBath}
-              className={`w-full py-3.5 px-4 rounded-2xl flex items-center justify-center gap-3 font-mono font-bold text-xs uppercase tracking-widest transition-all cursor-pointer ${
-                isSoundBathPlaying 
-                  ? 'bg-secondary text-neutral-950 shadow-lg shadow-secondary/20 hover:scale-[1.01]' 
-                  : 'bg-white/5 hover:bg-white/10 text-stone-200 border border-white/5'
-              }`}
-            >
-              {isSoundBathPlaying ? <Volume2 className="w-4 h-4 animate-bounce" /> : <VolumeX className="w-4 h-4" />}
-              <span>{isSoundBathPlaying ? "Active Solfeggio Gongs" : "Muted Solfeggio Gongs"}</span>
-            </button>
-
-            {/* Bottom Call Controls & Hangup */}
-            <div className="flex gap-4">
-              <button 
-                onClick={() => setIsMicMuted(!isMicMuted)}
-                className={`flex-1 py-3.5 rounded-2xl flex items-center justify-center border transition-all cursor-pointer ${
-                  isMicMuted 
-                    ? 'bg-red-500/10 border-red-500/20 text-red-400 font-semibold' 
-                    : 'bg-white/5 hover:bg-white/10 border-white/5 text-stone-200'
-                }`}
-                title="Mute/Unmute Mic"
-              >
-                {isMicMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-              </button>
-
-              <button 
-                onClick={handleLeaveAudioCall}
-                className="flex-[2.5] bg-red-500 hover:bg-red-600 active:scale-95 text-white py-3.5 rounded-2xl flex items-center justify-center gap-2 font-mono font-bold text-xs uppercase tracking-widest transition-all shadow-lg shadow-red-500/20 cursor-pointer"
-                title="End Audio Presence Session"
-              >
-                <PhoneOff className="w-4 h-4" />
-                <span>Disconnect</span>
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </div>

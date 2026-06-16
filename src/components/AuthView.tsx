@@ -45,10 +45,10 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, defaultName }
     } catch (err: any) {
       console.error("Auth submit error:", err);
       // Human-readable errors
-      if (err.code === 'auth/wrong-password') {
-        setErrorMsg('Incorrect credentials. Please verify your secure password.');
+      if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        setErrorMsg('Incorrect credentials. Please double-check your email and password, or use the "Autofill Demo Credentials" button below to access the sanctuary instantly.');
       } else if (err.code === 'auth/user-not-found') {
-        setErrorMsg('No current sanctuary matches this email address.');
+        setErrorMsg('No current sanctuary matches this email address. Please register a new account or sign in with demo credentials.');
       } else if (err.code === 'auth/email-already-in-use') {
         setErrorMsg('This email is already linked to another sanctuary.');
       } else if (err.code === 'auth/weak-password') {
@@ -70,7 +70,9 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, defaultName }
       onAuthSuccess(cred.user.uid, cred.user.displayName || fallbackName, cred.user.email || '');
     } catch (err: any) {
       console.error("Google login error:", err);
-      if (err.code !== 'auth/popup-closed-by-user') {
+      if (err.code === 'auth/unauthorized-domain') {
+        setErrorMsg(`OAuth Domain Unauthorized: To enable Google Login, please add "${window.location.hostname}" to the "Authorized domains" list in Firebase Console under Authentication > Settings.`);
+      } else if (err.code !== 'auth/popup-closed-by-user') {
         setErrorMsg(err.message || 'Google verification failed.');
       }
     } finally {
