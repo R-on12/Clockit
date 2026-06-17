@@ -1,5 +1,5 @@
 import React from 'react';
-import { Moon, Footprints, Droplet, MessageSquare, Users, Star } from 'lucide-react';
+import { MessageSquare, Users, Star } from 'lucide-react';
 import { Conversation, VitalState, UserSettings } from '../types';
 
 interface DashboardViewProps {
@@ -23,18 +23,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 }) => {
   // Recent conversations to display (the most recent conversations)
   const recentChats = conversations.filter(c => c.id !== 'wellness_guide').slice(0, 2);
-
-  const getMetricProgress = (current: number, target: number) => {
-    const ratio = current / target;
-    return Math.min(Math.max(ratio, 0), 1);
-  };
-
-  const getCirclePath = (ratio: number) => {
-    const radius = 20;
-    const circumference = 2 * Math.PI * radius;
-    const strokeDashoffset = circumference - ratio * circumference;
-    return { circumference, strokeDashoffset };
-  };
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -184,105 +172,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
             );
           })}
-        </div>
-      </section>
-
-      {/* Daily Vitality Section */}
-      <section className="mb-10">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-outline">Daily Vitality</h2>
-          <span className="text-[10px] text-outline/80">Tap icons to log progress</span>
-        </div>
-        <div className="grid grid-cols-3 gap-3">
-          {/* Sleep */}
-          <div 
-            onClick={() => onIncrementState('sleep')}
-            className="group bg-surface-container-low/50 hover:bg-surface-container/60 backdrop-blur-sm rounded-xl p-3 flex flex-col items-center border border-outline-variant/20 transition-all cursor-pointer"
-            id="vitality-sleep-card"
-          >
-            <div className="relative w-12 h-12 mb-2">
-              <svg className="w-full h-full -rotate-90">
-                <circle className="text-surface-container-highest" cx="24" cy="24" fill="transparent" r="20" stroke="currentColor" strokeWidth="3"></circle>
-                <circle 
-                  className="text-primary transition-all duration-300" 
-                  cx="24" 
-                  cy="24" 
-                  fill="transparent" 
-                  r="20" 
-                  stroke="currentColor" 
-                  strokeWidth="3.2" 
-                  strokeDasharray={2 * Math.PI * 20} 
-                  strokeDashoffset={(2 * Math.PI * 20) * (1 - getMetricProgress(vitalState.sleep.current, vitalState.sleep.target))}
-                  strokeLinecap="round"
-                ></circle>
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                <Moon className="w-4 h-4" />
-              </div>
-            </div>
-            <span className="text-[10px] font-label text-outline uppercase tracking-wider">Sleep</span>
-            <span className="text-sm font-headline text-on-surface font-medium mt-0.5">{vitalState.sleep.current}{vitalState.sleep.unit}</span>
-          </div>
-
-          {/* Steps */}
-          <div 
-            onClick={() => onIncrementState('steps')}
-            className="group bg-surface-container-low/50 hover:bg-surface-container/60 backdrop-blur-sm rounded-xl p-3 flex flex-col items-center border border-outline-variant/20 transition-all cursor-pointer"
-            id="vitality-steps-card"
-          >
-            <div className="relative w-12 h-12 mb-2">
-              <svg className="w-full h-full -rotate-90">
-                <circle className="text-surface-container-highest" cx="24" cy="24" fill="transparent" r="20" stroke="currentColor" strokeWidth="3"></circle>
-                <circle 
-                  className="text-primary transition-all duration-300" 
-                  cx="24" 
-                  cy="24" 
-                  fill="transparent" 
-                  r="20" 
-                  stroke="currentColor" 
-                  strokeWidth="3.2" 
-                  strokeDasharray={2 * Math.PI * 20} 
-                  strokeDashoffset={(2 * Math.PI * 20) * (1 - getMetricProgress(vitalState.steps.current, vitalState.steps.target))}
-                  strokeLinecap="round"
-                ></circle>
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                <Footprints className="w-4 h-4" />
-              </div>
-            </div>
-            <span className="text-[10px] font-label text-outline uppercase tracking-wider">Steps</span>
-            <span className="text-sm font-headline text-on-surface font-medium mt-0.5">{vitalState.steps.current}{vitalState.steps.unit}</span>
-          </div>
-
-          {/* Water */}
-          <div 
-            onClick={() => onIncrementState('water')}
-            className="group bg-surface-container-low/50 hover:bg-surface-container/60 backdrop-blur-sm rounded-xl p-3 flex flex-col items-center border border-outline-variant/20 transition-all cursor-pointer"
-            id="vitality-water-card"
-          >
-            <div className="relative w-12 h-12 mb-2">
-              <svg className="w-full h-full -rotate-90">
-                <circle className="text-surface-container-highest" cx="24" cy="24" fill="transparent" r="20" stroke="currentColor" strokeWidth="3"></circle>
-                <circle 
-                  className="text-primary transition-all duration-300" 
-                  cx="24" 
-                  cy="24" 
-                  fill="transparent" 
-                  r="20" 
-                  stroke="currentColor" 
-                  strokeWidth="3.2" 
-                  strokeDasharray={2 * Math.PI * 20} 
-                  strokeDashoffset={(2 * Math.PI * 20) * (1 - getMetricProgress(vitalState.water.current, vitalState.water.target))}
-                  strokeLinecap="round"
-                ></circle>
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                <Droplet className="w-4 h-4" />
-              </div>
-            </div>
-            <span className="text-[10px] font-label text-outline uppercase tracking-wider">Water</span>
-            <span className="text-sm font-headline text-on-surface font-medium mt-0.5">{vitalState.water.current}{vitalState.water.unit}</span>
-          </div>
         </div>
       </section>
 
