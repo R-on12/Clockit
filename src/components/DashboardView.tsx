@@ -69,6 +69,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     return matchesSearch;
   });
 
+  // Dynamic search/filter debugging log for newly registered user directory searches
+  React.useEffect(() => {
+    if (profileSearchQuery || membershipFilter !== 'all') {
+      console.log(`[DEBUG] Dashboard User Directory Search: query="${profileSearchQuery}", filter="${membershipFilter}", matchingCount=${filteredUsers.length}, totalRegisteredCount=${registeredUsers.length}`);
+    }
+  }, [profileSearchQuery, membershipFilter, filteredUsers.length, registeredUsers.length]);
+
   const handleOpenProfile = (user: any) => {
     setSelectedUser(user);
     setQuickMessageText('');
@@ -208,7 +215,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                             {user.name.split(' ').map((n: string) => n[0]).slice(0, 2).join('')}
                           </div>
                         )}
-                        <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-surface-container-low rounded-full" title="Active Platform Seeker" />
+                        <span 
+                          className={`absolute bottom-0 right-0 w-3.5 h-3.5 border-2 border-surface-container-low rounded-full ${
+                            user.isOnline ? 'bg-emerald-500' : 'bg-outline-variant'
+                          }`} 
+                          title={user.isOnline ? 'Active Platform Seeker' : 'Offline'} 
+                        />
                       </div>
 
                       {/* Membership / Profile status pills */}
@@ -235,8 +247,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     </div>
 
                     <div>
-                      <h3 className="text-base font-bold text-on-surface truncate group-hover:text-primary transition-colors flex items-center gap-1">
-                        {user.name}
+                      <h3 className="text-base font-bold text-on-surface truncate group-hover:text-primary transition-colors flex items-center gap-1.5">
+                        <span>{user.name}</span>
+                        {user.isOnline && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" title="Active Now" />
+                        )}
                       </h3>
                       <p className="text-xs text-on-surface-variant line-clamp-1 mt-0.5">
                         {isPremium 

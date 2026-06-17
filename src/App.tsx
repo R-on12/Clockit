@@ -63,6 +63,14 @@ export default function App() {
   const [loadingUsersDir, setLoadingUsersDir] = useState<boolean>(false);
   const [usersDirSearch, setUsersDirSearch] = useState<string>('');
 
+  // User Search in overlay logging
+  useEffect(() => {
+    if (usersDirSearch) {
+      const matchCount = registeredUsersList.filter(u => u.name.toLowerCase().includes(usersDirSearch.toLowerCase())).length;
+      console.log(`[DEBUG] New Chat Overlay User Search: query="${usersDirSearch}", matchingCount=${matchCount}, totalCount=${registeredUsersList.length}`);
+    }
+  }, [usersDirSearch, registeredUsersList]);
+
   // Sync registered users from Firestore for safe messaging
   useEffect(() => {
     if (!isLoggedIn) return;
@@ -90,24 +98,94 @@ export default function App() {
     return () => unsubscribe();
   }, [isLoggedIn, currentUserUid]);
 
-  // Realtime Friendships Subscriber
+  // Realtime Friendships Subscriber (combining friend_requests and friends collections)
   useEffect(() => {
     if (!currentUserUid || !isLoggedIn) return;
 
-    const friendshipsRef = collection(db, 'friendships');
-    const q = query(friendshipsRef, where('users', 'array-contains', currentUserUid));
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const loaded: any[] = [];
+    let active = true;
+    let requestsList: any[] = [];
+    let friendsList: any[] = [];
+
+    const updateCombinedFriendships = () => {
+      if (!active) return;
+      const combined = [...requestsList, ...friendsList];
+      setFriendships(combined);
+    };
+
+    // 1. Subscribe to friend_requests where senderId == currentUserUid
+    const requestsRef = collection(db, 'friend_requests');
+    const qRequestsSender = query(requestsRef, where('senderId', '==', currentUserUid));
+    const unsubscribeRequestsSender = onSnapshot(qRequestsSender, (snapshot) => {
+      const items: any[] = [];
       snapshot.forEach(doc => {
-        loaded.push({ id: doc.id, ...doc.data() });
+        const data = doc.data();
+        items.push({
+          id: doc.id,
+          users: [data.senderId, data.receiverId],
+          senderId: data.senderId,
+          receiverId: data.receiverId,
+          status: 'pending',
+          createdAt: data.createdAt
+        });
       });
-      setFriendships(loaded);
+      
+      const otherPart = requestsList.filter(item => item.senderId !== currentUserUid);
+      requestsList = [...otherPart, ...items];
+      updateCombinedFriendships();
     }, (error) => {
-      console.error("Error fetching friendships in real-time:", error);
+      handleFirestoreError(error, OperationType.GET, 'friend_requests');
     });
 
-    return () => unsubscribe();
+    // 2. Subscribe to friend_requests where receiverId == currentUserUid
+    const qRequestsReceiver = query(requestsRef, where('receiverId', '==', currentUserUid));
+    const unsubscribeRequestsReceiver = onSnapshot(qRequestsReceiver, (snapshot) => {
+      const items: any[] = [];
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        items.push({
+          id: doc.id,
+          users: [data.senderId, data.receiverId],
+          senderId: data.senderId,
+          receiverId: data.receiverId,
+          status: 'pending',
+          createdAt: data.createdAt
+        });
+      });
+      const otherPart = requestsList.filter(item => item.receiverId !== currentUserUid);
+      requestsList = [...otherPart, ...items];
+      updateCombinedFriendships();
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'friend_requests');
+    });
+
+    // 3. Subscribe to friends where users array contains currentUserUid
+    const friendsRef = collection(db, 'friends');
+    const qFriends = query(friendsRef, where('users', 'array-contains', currentUserUid));
+    const unsubscribeFriends = onSnapshot(qFriends, (snapshot) => {
+      const items: any[] = [];
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        items.push({
+          id: doc.id,
+          users: data.users,
+          senderId: data.users[0],
+          receiverId: data.users[1],
+          status: 'accepted',
+          createdAt: data.createdAt
+        });
+      });
+      friendsList = items;
+      updateCombinedFriendships();
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'friends');
+    });
+
+    return () => {
+      active = false;
+      unsubscribeRequestsSender();
+      unsubscribeRequestsReceiver();
+      unsubscribeFriends();
+    };
   }, [currentUserUid, isLoggedIn]);
 
   // 1. Verify Firestore Connection on Boot
@@ -131,7 +209,7 @@ export default function App() {
         setCurrentUserUid(user.uid);
         setCurrentUserEmail(user.email || null);
         setIsLoggedIn(true);
-        await loadOrCreateUser(user.uid, user.displayName || 'Ronnie', user.photoURL || undefined);
+        await loadOrCreateUser(user.uid, user.displayName || 'Ronnie', user.photoURL || undefined, user.email || undefined);
       } else {
         setCurrentUserUid(null);
         setCurrentUserEmail(null);
@@ -142,18 +220,22 @@ export default function App() {
   }, []);
 
   // Sync / Initialize User Profile Settings and Vitals in Firestore (splitting public vs private info)
-  const loadOrCreateUser = async (uid: string, initialName: string, avatarUrl?: string) => {
+  const loadOrCreateUser = async (uid: string, initialName: string, avatarUrl?: string, emailAddress?: string) => {
+    console.log('[DEBUG] loadOrCreateUser started:', { uid, initialName, avatarUrl, emailAddress });
     const userDocRef = doc(db, 'users', uid);
     const vitalsDocRef = doc(db, 'users', uid, 'private', 'vitals');
     try {
       const userDoc = await getDoc(userDocRef);
       const vitalsDoc = await getDoc(vitalsDocRef);
+      console.log(`[DEBUG] checked existing docs. userDocExists: ${userDoc.exists()}, vitalsDocExists: ${vitalsDoc.exists()}`);
 
       const pendingName = localStorage.getItem('clockit_pending_nickname');
       let finalInitialName = initialName;
       if (pendingName && pendingName !== 'Ronnie' && pendingName !== 'Jack') {
         finalInitialName = pendingName;
       }
+
+      const finalEmail = emailAddress || currentUserEmail || 'unspecified@gmail.com';
 
       if (userDoc.exists()) {
         const data = userDoc.data();
@@ -172,6 +254,14 @@ export default function App() {
         let avatarToUse = data.avatar || initialUserSettings.avatar;
         if (avatarUrl && (!data.avatar || data.avatar.includes('dicebear') || data.avatar.includes('avatar.png'))) {
           avatarToUse = avatarUrl;
+          shouldUpdateDoc = true;
+        }
+
+        // Keep email and online status synchronized
+        if (!data.email || data.email !== finalEmail) {
+          shouldUpdateDoc = true;
+        }
+        if (data.isOnline !== true) {
           shouldUpdateDoc = true;
         }
 
@@ -207,7 +297,17 @@ export default function App() {
         localStorage.setItem('clockit_user_settings', JSON.stringify(loadedSettings));
         
         if (shouldUpdateDoc) {
-          await setDoc(userDocRef, { uid, name: nameToUse, avatar: avatarToUse, membership: loadedSettings.membership, clockLevel: loadedSettings.clockLevel }, { merge: true });
+          console.log('[DEBUG] updating existing user profile document in Firestore:', { nameToUse, finalEmail, isOnline: true });
+          await setDoc(userDocRef, {
+            uid,
+            name: nameToUse,
+            email: finalEmail,
+            avatar: avatarToUse,
+            isOnline: true,
+            createdAt: data.createdAt || new Date().toISOString(),
+            membership: loadedSettings.membership,
+            clockLevel: loadedSettings.clockLevel
+          }, { merge: true });
         }
         setVitalState({
           sleep: { current: vitalsData.sleepCurrent ?? 7.2, target: vitalsData.sleepTarget ?? 8.0, unit: 'h' },
@@ -219,11 +319,14 @@ export default function App() {
         const publicDoc = {
           uid: uid,
           name: finalInitialName,
-          membership: 'Premium Member',
-          clockLevel: 12,
+          email: finalEmail,
           avatar: avatarToUse,
-          createdAt: new Date().toISOString()
+          isOnline: true,
+          createdAt: new Date().toISOString(),
+          membership: 'Premium Member',
+          clockLevel: 12
         };
+        console.log('[DEBUG] creating brand new user profile document in Firestore:', publicDoc);
         await setDoc(userDocRef, publicDoc);
 
         const vitalsDocData = {
@@ -258,7 +361,14 @@ export default function App() {
         localStorage.removeItem('clockit_pending_nickname');
       } catch (e) {}
     } catch (error) {
-      handleFirestoreError(error, OperationType.GET, `users/${uid}`);
+      console.error('[DEBUG] Failed to load/create user profile in Firestore:', {
+        uid,
+        name: initialName,
+        email: emailAddress,
+        error: error instanceof Error ? error.message : String(error),
+        timestamp: new Date().toISOString()
+      });
+      handleFirestoreError(error, OperationType.WRITE, `users/${uid}`);
     }
   };
 
@@ -616,39 +726,86 @@ export default function App() {
 
   // --- Friendship System Real-time Actions ---
   const handleSendFriendRequest = async (receiverId: string, receiverName: string, receiverAvatar: string) => {
-    if (!currentUserUid) return;
-    const friendshipId = [currentUserUid, receiverId].sort().join('_');
-    const friendshipRef = doc(db, 'friendships', friendshipId);
-    await setDoc(friendshipRef, {
-      id: friendshipId,
-      users: [currentUserUid, receiverId],
-      senderId: currentUserUid,
-      receiverId: receiverId,
-      status: 'pending',
-      createdAt: new Date().toISOString()
-    });
+    if (!currentUserUid) {
+      console.warn('[DEBUG] cannot send friend request, no current logged-in user UID');
+      return;
+    }
+    const reqId = [currentUserUid, receiverId].sort().join('_');
+    const reqRef = doc(db, 'friend_requests', reqId);
+    try {
+      console.log('[DEBUG] Initiating send friend request:', { senderId: currentUserUid, receiverId, reqId });
+      await setDoc(reqRef, {
+        id: reqId,
+        senderId: currentUserUid,
+        senderName: userSettings.name,
+        senderAvatar: userSettings.avatar,
+        receiverId: receiverId,
+        receiverName: receiverName,
+        receiverAvatar: receiverAvatar,
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      });
+      console.log('[DEBUG] Friend request document successfully written to Firestore under ID:', reqId);
+    } catch (err) {
+      console.error('[DEBUG] Failed to send friend request:', { senderId: currentUserUid, receiverId, error: err });
+      handleFirestoreError(err, OperationType.WRITE, `friend_requests/${reqId}`);
+    }
   };
 
   const handleAcceptFriendRequest = async (friendshipId: string) => {
-    const friendshipRef = doc(db, 'friendships', friendshipId);
-    await updateDoc(friendshipRef, {
-      status: 'accepted'
-    });
+    const reqRef = doc(db, 'friend_requests', friendshipId);
+    const friendRef = doc(db, 'friends', friendshipId);
+    try {
+      console.log('[DEBUG] Initiating accept friend request for ID:', friendshipId);
+      const parts = friendshipId.split('_');
+      await setDoc(friendRef, {
+        id: friendshipId,
+        users: parts,
+        createdAt: new Date().toISOString()
+      });
+      console.log('[DEBUG] Friendship confirmed, deleting friend request doc:', friendshipId);
+      await deleteDoc(reqRef);
+      console.log('[DEBUG] Friendship acceptance successfully completed for ID:', friendshipId);
+    } catch (err) {
+      console.error('[DEBUG] Failed to accept friend request:', { friendshipId, error: err });
+      handleFirestoreError(err, OperationType.WRITE, `friends/${friendshipId}`);
+    }
   };
 
   const handleRejectFriendRequest = async (friendshipId: string) => {
-    const friendshipRef = doc(db, 'friendships', friendshipId);
-    await deleteDoc(friendshipRef);
+    const reqRef = doc(db, 'friend_requests', friendshipId);
+    try {
+      console.log('[DEBUG] Initiating reject friend request for ID:', friendshipId);
+      await deleteDoc(reqRef);
+      console.log('[DEBUG] Friend request document successfully deleted (rejected) for ID:', friendshipId);
+    } catch (err) {
+      console.error('[DEBUG] Failed to reject friend request:', { friendshipId, error: err });
+      handleFirestoreError(err, OperationType.DELETE, `friend_requests/${friendshipId}`);
+    }
   };
 
   const handleCancelFriendRequest = async (friendshipId: string) => {
-    const friendshipRef = doc(db, 'friendships', friendshipId);
-    await deleteDoc(friendshipRef);
+    const reqRef = doc(db, 'friend_requests', friendshipId);
+    try {
+      console.log('[DEBUG] Initiating cancel outgoing friend request for ID:', friendshipId);
+      await deleteDoc(reqRef);
+      console.log('[DEBUG] Friend request document successfully deleted (canceled) for ID:', friendshipId);
+    } catch (err) {
+      console.error('[DEBUG] Failed to cancel friend request:', { friendshipId, error: err });
+      handleFirestoreError(err, OperationType.DELETE, `friend_requests/${friendshipId}`);
+    }
   };
 
   const handleRemoveFriend = async (friendshipId: string) => {
-    const friendshipRef = doc(db, 'friendships', friendshipId);
-    await deleteDoc(friendshipRef);
+    const friendRef = doc(db, 'friends', friendshipId);
+    try {
+      console.log('[DEBUG] Initiating remove friend connection for ID:', friendshipId);
+      await deleteDoc(friendRef);
+      console.log('[DEBUG] Friend connection successfully deleted for ID:', friendshipId);
+    } catch (err) {
+      console.error('[DEBUG] Failed to remove friend connection:', { friendshipId, error: err });
+      handleFirestoreError(err, OperationType.DELETE, `friends/${friendshipId}`);
+    }
   };
 
   // Circle / Community Posts Actions
@@ -790,6 +947,14 @@ export default function App() {
 
   // Sign out simulation
   const handleSignOut = async () => {
+    if (currentUserUid) {
+      try {
+        const userDocRef = doc(db, 'users', currentUserUid);
+        await setDoc(userDocRef, { isOnline: false }, { merge: true });
+      } catch (err) {
+        console.error("Error setting online status to false on sign out:", err);
+      }
+    }
     await logoutUser();
     localStorage.removeItem('clockit_user_settings');
     setVitalState(initialVitalState);
@@ -899,7 +1064,7 @@ export default function App() {
         onAuthSuccess={async (uid, userName, email) => { 
           setCurrentUserUid(uid);
           setIsLoggedIn(true); 
-          await loadOrCreateUser(uid, userName, auth.currentUser?.photoURL || undefined);
+          await loadOrCreateUser(uid, userName, auth.currentUser?.photoURL || undefined, email || undefined);
         }} 
       />
     );

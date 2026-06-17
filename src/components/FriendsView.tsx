@@ -90,6 +90,13 @@ export const FriendsView: React.FC<FriendsViewProps> = ({
     return rel.status === 'pending' && rel.senderId === currentUserId;
   });
 
+  // User Search logging for connections page
+  React.useEffect(() => {
+    if (searchQuery || activeSubTab) {
+      console.log(`[DEBUG] Friends Tab Search: subTab="${activeSubTab}", query="${searchQuery}", discoverCount=${filteredDiscover.length}, friendsCount=${filteredFriends.length}, incomingRequests=${incomingRequests.length}, outgoingRequests=${outgoingRequests.length}`);
+    }
+  }, [searchQuery, activeSubTab, filteredDiscover.length, filteredFriends.length, incomingRequests.length, outgoingRequests.length]);
+
   // Action wrappers with loading and fallback reporting
   const handleAction = async (actionId: string, fn: () => Promise<void>) => {
     setErrorMsg('');
@@ -204,22 +211,43 @@ export const FriendsView: React.FC<FriendsViewProps> = ({
                       className="bg-surface-container-low border border-outline-variant/10 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-[0_4px_20px_rgba(0,0,0,0.01)] hover:border-outline-variant/30 transition-all hover:translate-y-[-1px] relative overflow-hidden"
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        {member.avatar ? (
-                          <img
-                            src={member.avatar}
-                            alt={member.name}
-                            className="w-11 h-11 rounded-full object-cover border border-outline-variant/15 shrink-0"
-                            referrerPolicy="no-referrer"
+                        <div className="relative shrink-0">
+                          {member.avatar ? (
+                            <img
+                              src={member.avatar}
+                              alt={member.name}
+                              className="w-11 h-11 rounded-full object-cover border border-outline shadow-sm shrink-0"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <div className="w-11 h-11 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm shrink-0 uppercase">
+                              {member.name.split(' ').map(n => n[0]).slice(0, 2).join('')}
+                            </div>
+                          )}
+                          <div
+                            className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-surface shadow-sm ${
+                              member.isOnline ? 'bg-emerald-500' : 'bg-outline-variant/70'
+                            }`}
+                            title={member.isOnline ? 'Online now' : 'Offline'}
                           />
-                        ) : (
-                          <div className="w-11 h-11 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm shrink-0 uppercase">
-                            {member.name.split(' ').map(n => n[0]).slice(0, 2).join('')}
-                          </div>
-                        )}
+                        </div>
                         <div className="min-w-0">
-                          <h4 className="font-semibold text-sm text-on-surface truncate pr-1">{member.name}</h4>
-                          <p className="text-[10px] text-outline font-mono mt-0.5 uppercase tracking-wide">
+                          <h4 className="font-semibold text-sm text-on-surface truncate pr-1 flex items-center gap-1.5">
+                            <span>{member.name}</span>
+                            {member.isOnline && (
+                              <span className="text-[9px] bg-emerald-500/10 text-emerald-500 font-medium px-1.5 py-0.2 rounded-full font-sans">
+                                Active
+                              </span>
+                            )}
+                          </h4>
+                          {member.email && (
+                            <p className="text-[10px] text-outline/85 truncate" title={member.email}>
+                              {member.email}
+                            </p>
+                          )}
+                          <p className="text-[9px] text-outline/55 font-mono mt-0.5 uppercase tracking-wide">
                             Lvl {member.clockLevel ?? member.zenLevel ?? 12} • {member.membership || 'Registered Seekr'}
+                            {member.createdAt && ` • Joined ${new Date(member.createdAt).toLocaleDateString()}`}
                           </p>
                         </div>
                       </div>
@@ -313,22 +341,43 @@ export const FriendsView: React.FC<FriendsViewProps> = ({
                       className="bg-surface-container-low border border-outline-variant/10 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-[0_4px_20px_rgba(0,0,0,0.01)] hover:border-outline-variant/30 transition-all hover:translate-y-[-1px]"
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        {member.avatar ? (
-                          <img
-                            src={member.avatar}
-                            alt={member.name}
-                            className="w-11 h-11 rounded-full object-cover border border-outline-variant/15 shrink-0"
-                            referrerPolicy="no-referrer"
+                        <div className="relative shrink-0">
+                          {member.avatar ? (
+                            <img
+                              src={member.avatar}
+                              alt={member.name}
+                              className="w-11 h-11 rounded-full object-cover border border-outline shadow-sm shrink-0"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <div className="w-11 h-11 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm shrink-0 uppercase">
+                              {member.name.split(' ').map(n => n[0]).slice(0, 2).join('')}
+                            </div>
+                          )}
+                          <div
+                            className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-surface shadow-sm ${
+                              member.isOnline ? 'bg-emerald-500' : 'bg-outline-variant/70'
+                            }`}
+                            title={member.isOnline ? 'Online now' : 'Offline'}
                           />
-                        ) : (
-                          <div className="w-11 h-11 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm shrink-0 uppercase">
-                            {member.name.split(' ').map(n => n[0]).slice(0, 2).join('')}
-                          </div>
-                        )}
+                        </div>
                         <div className="min-w-0">
-                          <h4 className="font-semibold text-sm text-on-surface truncate pr-1">{member.name}</h4>
-                          <p className="text-[10px] text-outline font-mono mt-0.5 uppercase tracking-wide">
+                          <h4 className="font-semibold text-sm text-on-surface truncate pr-1 flex items-center gap-1.5">
+                            <span>{member.name}</span>
+                            {member.isOnline && (
+                              <span className="text-[9px] bg-emerald-500/10 text-emerald-500 font-medium px-1.5 py-0.2 rounded-full font-sans">
+                                Active
+                              </span>
+                            )}
+                          </h4>
+                          {member.email && (
+                            <p className="text-[10px] text-outline/85 truncate" title={member.email}>
+                              {member.email}
+                            </p>
+                          )}
+                          <p className="text-[9px] text-outline/55 font-mono mt-0.5 uppercase tracking-wide">
                             Lvl {member.clockLevel ?? member.zenLevel ?? 12} • {member.membership}
+                            {member.createdAt && ` • Joined ${new Date(member.createdAt).toLocaleDateString()}`}
                           </p>
                         </div>
                       </div>
@@ -383,22 +432,43 @@ export const FriendsView: React.FC<FriendsViewProps> = ({
                         className="bg-surface-container p-4 rounded-2xl flex items-center justify-between gap-4 shadow-sm border border-outline-variant/10 animate-fade-in"
                       >
                         <div className="flex items-center gap-3 min-w-0">
-                          {member.avatar ? (
-                            <img
-                              src={member.avatar}
-                              alt={member.name}
-                              className="w-11 h-11 rounded-full object-cover border border-outline-variant/15 shrink-0"
-                              referrerPolicy="no-referrer"
+                          <div className="relative shrink-0">
+                            {member.avatar ? (
+                              <img
+                                src={member.avatar}
+                                alt={member.name}
+                                className="w-11 h-11 rounded-full object-cover border border-outline shadow-sm shrink-0"
+                                referrerPolicy="no-referrer"
+                              />
+                            ) : (
+                              <div className="w-11 h-11 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm shrink-0 uppercase">
+                                {member.name.split(' ').map(n => n[0]).slice(0, 2).join('')}
+                              </div>
+                            )}
+                            <div
+                              className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-surface shadow-sm ${
+                                member.isOnline ? 'bg-emerald-500' : 'bg-outline-variant/70'
+                              }`}
+                              title={member.isOnline ? 'Online now' : 'Offline'}
                             />
-                          ) : (
-                            <div className="w-11 h-11 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm shrink-0 uppercase">
-                              {member.name.split(' ').map(n => n[0]).slice(0, 2).join('')}
-                            </div>
-                          )}
+                          </div>
                           <div className="min-w-0">
-                            <h4 className="font-semibold text-sm text-on-surface truncate">{member.name}</h4>
-                            <p className="text-[10px] text-outline font-mono mt-0.5 uppercase tracking-wide">
+                            <h4 className="font-semibold text-sm text-on-surface truncate flex items-center gap-1.5">
+                              <span>{member.name}</span>
+                              {member.isOnline && (
+                                <span className="text-[9px] bg-emerald-500/10 text-emerald-500 font-medium px-1.5 py-0.2 rounded-full font-sans">
+                                  Active
+                                </span>
+                              )}
+                            </h4>
+                            {member.email && (
+                              <p className="text-[10px] text-outline/85 truncate" title={member.email}>
+                                {member.email}
+                              </p>
+                            )}
+                            <p className="text-[9px] text-outline/55 font-mono mt-0.5 uppercase tracking-wide">
                               Lvl {member.clockLevel ?? member.zenLevel ?? 12} • {member.membership}
+                              {member.createdAt && ` • Joined ${new Date(member.createdAt).toLocaleDateString()}`}
                             </p>
                           </div>
                         </div>
@@ -442,22 +512,43 @@ export const FriendsView: React.FC<FriendsViewProps> = ({
                         className="bg-surface/40 p-4 rounded-2xl flex items-center justify-between gap-4 border border-outline-variant/10 text-on-surface opacity-80"
                       >
                         <div className="flex items-center gap-3 min-w-0 font-body">
-                          {member.avatar ? (
-                            <img
-                              src={member.avatar}
-                              alt={member.name}
-                              className="w-10 h-10 rounded-full object-cover border border-outline-variant/15 shrink-0"
-                              referrerPolicy="no-referrer"
+                          <div className="relative shrink-0">
+                            {member.avatar ? (
+                              <img
+                                src={member.avatar}
+                                alt={member.name}
+                                className="w-10 h-10 rounded-full object-cover border border-outline shadow-sm shrink-0"
+                                referrerPolicy="no-referrer"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm shrink-0 uppercase">
+                                {member.name.split(' ').map(n => n[0]).slice(0, 2).join('')}
+                              </div>
+                            )}
+                            <div
+                              className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-surface shadow-sm ${
+                                member.isOnline ? 'bg-emerald-500' : 'bg-outline-variant/70'
+                              }`}
+                              title={member.isOnline ? 'Online now' : 'Offline'}
                             />
-                          ) : (
-                            <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm shrink-0 uppercase">
-                              {member.name.split(' ').map(n => n[0]).slice(0, 2).join('')}
-                            </div>
-                          )}
+                          </div>
                           <div className="min-w-0">
-                            <h4 className="font-semibold text-sm truncate">{member.name} (Awaiting)</h4>
-                            <p className="text-[10px] text-outline font-mono mt-0.5">
-                              Level {member.clockLevel ?? member.zenLevel ?? 12}seeker
+                            <h4 className="font-semibold text-sm truncate flex items-center gap-1.5">
+                              <span>{member.name} (Awaiting)</span>
+                              {member.isOnline && (
+                                <span className="text-[9px] bg-emerald-500/10 text-emerald-500 font-medium px-1.5 py-0.2 rounded-full font-sans">
+                                  Active
+                                </span>
+                              )}
+                            </h4>
+                            {member.email && (
+                              <p className="text-[10px] text-outline/85 truncate mb-0.5" title={member.email}>
+                                {member.email}
+                              </p>
+                            )}
+                            <p className="text-[9px] text-outline/55 font-mono">
+                              Level {member.clockLevel ?? member.zenLevel ?? 12} seeker
+                              {member.createdAt && ` • Invited ${new Date(member.createdAt).toLocaleDateString()}`}
                             </p>
                           </div>
                         </div>

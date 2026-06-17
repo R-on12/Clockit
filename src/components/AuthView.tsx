@@ -36,7 +36,9 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, defaultName }
     
     try {
       if (isLogin) {
+        console.log(`[DEBUG] Initiating login for email: ${email}`);
         const cred = await loginWithEmailAndPassword(email, password);
+        console.log(`[DEBUG] Login successful. User UID: ${cred.user.uid}`);
         const displayName = cred.user.displayName || name;
         if (displayName) {
           localStorage.setItem('clockit_pending_nickname', displayName.trim());
@@ -46,11 +48,20 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, defaultName }
         if (name) {
           localStorage.setItem('clockit_pending_nickname', name.trim());
         }
+        console.log(`[DEBUG] Initiating signup for email: ${email}, name: ${name}`);
         const cred = await registerWithEmailAndPassword(email, password, name);
+        console.log(`[DEBUG] Signup successful. User UID: ${cred.user.uid}`);
         onAuthSuccess(cred.user.uid, name, cred.user.email || email);
       }
     } catch (err: any) {
-      console.error("Auth submit error:", err);
+      console.error("[DEBUG] Authentication or signup failure:", {
+        action: isLogin ? 'LOGIN' : 'SIGNUP',
+        email,
+        name: isLogin ? undefined : name,
+        errorCode: err.code,
+        errorMessage: err.message,
+        timestamp: new Date().toISOString()
+      });
       // Human-readable errors
       if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
         setErrorMsg('Incorrect credentials. Please double-check your email and password, or use the "Autofill Demo Credentials" button below to access the sanctuary instantly.');
@@ -72,7 +83,9 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, defaultName }
     setErrorMsg('');
     setIsLoading(true);
     try {
+      console.log("[DEBUG] Initiating Google Sign-In");
       const cred = await loginWithGoogle();
+      console.log(`[DEBUG] Google Login successful. User UID: ${cred.user.uid}`);
       const fallbackName = cred.user.email ? cred.user.email.split('@')[0] : 'Clock Seeker';
       const nameToUse = cred.user.displayName || fallbackName;
       if (nameToUse) {
@@ -80,7 +93,11 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, defaultName }
       }
       onAuthSuccess(cred.user.uid, nameToUse, cred.user.email || '');
     } catch (err: any) {
-      console.error("Google login error:", err);
+      console.error("[DEBUG] Google Sign-In failed:", {
+        errorCode: err.code,
+        errorMessage: err.message,
+        timestamp: new Date().toISOString()
+      });
       if (err.code === 'auth/unauthorized-domain') {
         setErrorMsg(`OAuth Domain Unauthorized: To enable Google Login, please add "${window.location.hostname}" to the "Authorized domains" list in Firebase Console under Authentication > Settings.`);
       } else if (err.code !== 'auth/popup-closed-by-user') {

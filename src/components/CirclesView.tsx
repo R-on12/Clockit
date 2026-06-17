@@ -139,6 +139,13 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
   // Bookmarked posts list
   const [bookmarkedPostIds, setBookmarkedPostIds] = useState<string[]>(['p2']);
   
+  // Real web news states loaded from full-stack server
+  const [newsTab, setNewsTab] = useState<'internal' | 'live'>('live');
+  const [liveNews, setLiveNews] = useState<any[]>([]);
+  const [loadingNews, setLoadingNews] = useState<boolean>(true);
+  const [newsError, setNewsError] = useState<string | null>(null);
+  const [selectedNewsDetail, setSelectedNewsDetail] = useState<any | null>(null);
+  
   // Re-pinched (Reposted) posts list
   const [repinchedIds, setRepinchedIds] = useState<string[]>([]);
 
@@ -202,6 +209,43 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
   const [usersError, setUsersError] = useState<string | null>(null);
 
   const activeCircle = circles.find(c => c.id === activeCircleId) || circles[0];
+
+  // Hook to fetch live trending news from backend (Express / Gemini Search Grounding)
+  useEffect(() => {
+    let active = true;
+    const fetchTrendingNews = async () => {
+      setLoadingNews(true);
+      setNewsError(null);
+      try {
+        const response = await fetch('/api/news/trending');
+        if (!response.ok) {
+          throw new Error('Cloud reception dimmed. Could not retrieve news grid.');
+        }
+        const data = await response.json();
+        if (active) {
+          if (data && Array.isArray(data.news)) {
+            setLiveNews(data.news || []);
+          } else {
+            setNewsError('Invalid cloud feed format.');
+          }
+        }
+      } catch (err: any) {
+        console.error('Error fetching live news feed:', err);
+        if (active) {
+          setNewsError(err.message || 'Error collecting web updates.');
+        }
+      } finally {
+        if (active) {
+          setLoadingNews(false);
+        }
+      }
+    };
+
+    fetchTrendingNews();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Hook to fetch and synchronize all platform members from Firestore in real-time
   useEffect(() => {
@@ -1335,38 +1379,163 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
         {/* RIGHT COLUMN: Sidebar (X style trends, analytics, bookmarks etc) */}
         <div className="lg:col-span-4 space-y-6">
           
-          {/* 🐦 Twitter-like "What's Happening" Trends Topic Drawer */}
+          {/* 🐦 Twitter-like "What's Happening" Trends & Live news Topic Drawer */}
           <section className="bg-surface-container-low rounded-3xl p-5 border border-outline-variant/10 shadow-sm space-y-4">
             <div className="flex items-center justify-between border-b border-outline-variant/5 pb-2.5">
-              <h3 className="font-headline font-bold text-sm text-primary flex items-center gap-1.5 uppercase tracking-widest">
+              <h3 className="font-headline font-bold text-xs text-primary flex items-center gap-1.5 uppercase tracking-widest">
                 <TrendingUp className="w-4 h-4 text-pink-500" />
-                Trends to Center
+                Trends & Web News
               </h3>
-              <Sparkles className="w-3.5 h-3.5 text-pink-500" />
+              
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={async () => {
+                    setLoadingNews(true);
+                    setNewsError(null);
+                    try {
+                      const res = await fetch('/api/news/trending');
+                      const data = await res.json();
+                      if (data && Array.isArray(data.news)) {
+                        setLiveNews(data.news);
+                      } else {
+                        setNewsError('Invalid feed format.');
+                      }
+                    } catch (err) {
+                      setNewsError('Could not refresh news updates.');
+                    } finally {
+                      setLoadingNews(false);
+                    }
+                  }}
+                  disabled={loadingNews}
+                  className="p-1 rounded-lg bg-surface-container-lowest hover:bg-pink-500/10 text-outline hover:text-pink-500 transition-all cursor-pointer disabled:opacity-50"
+                  title="Refresh web news"
+                  id="btn-refresh-trends"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${loadingNews ? 'animate-spin text-pink-500' : ''}`} />
+                </button>
+                <Sparkles className="w-3.5 h-3.5 text-pink-500 animate-pulse" />
+              </div>
+            </div>
+
+            {/* Selector tabs for Sidebar Trend Type */}
+            <div className="grid grid-cols-2 gap-1 bg-surface-container-lowest p-1 rounded-xl">
+              <button
+                onClick={() => setNewsTab('internal')}
+                className={`py-2 text-[10px] font-extrabold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
+                  newsTab === 'internal'
+                    ? 'bg-primary text-on-primary shadow-sm'
+                    : 'text-outline hover:text-on-surface'
+                }`}
+              >
+                Internal
+              </button>
+              <button
+                onClick={() => setNewsTab('live')}
+                className={`py-2 text-[10px] font-extrabold uppercase tracking-wider rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer ${
+                  newsTab === 'live'
+                    ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-sm font-extrabold'
+                    : 'text-outline hover:text-on-surface'
+                }`}
+              >
+                <Globe className="w-3 h-3 text-pink-200" />
+                Web News
+              </button>
             </div>
 
             <div className="space-y-4">
-              {trendingTopics.map(topic => (
-                <button
-                  key={topic.id}
-                  onClick={() => {
-                    setSelectedHashtagFilter(topic.hashtag);
-                    setActiveFeedTab('explore');
-                  }}
-                  className="w-full text-left p-3 rounded-2xl bg-surface-container-lowest hover:bg-pink-500/5 hover:border-pink-500/20 border border-transparent transition-all outline-none block group"
-                >
-                  <div className="flex justify-between text-[10px] font-label text-outline uppercase tracking-wider mb-1 leading-none">
-                    <span>{topic.category}</span>
-                    <span className="text-pink-500 animate-pulse">{topic.postsCount} pinch counts</span>
-                  </div>
-                  <h4 className="font-bold text-sm text-on-surface group-hover:text-pink-500 transition-colors">
-                    {topic.hashtag}
-                  </h4>
-                  <p className="text-[11px] text-outline mt-1 font-body leading-tight">
-                    {topic.description}
-                  </p>
-                </button>
-              ))}
+              {newsTab === 'internal' ? (
+                // --- INTERNAL TRENDS ---
+                trendingTopics.map(topic => (
+                  <button
+                    key={topic.id}
+                    onClick={() => {
+                      setSelectedHashtagFilter(topic.hashtag);
+                      setActiveFeedTab('explore');
+                    }}
+                    className="w-full text-left p-3 rounded-2xl bg-surface-container-lowest hover:bg-pink-500/5 hover:border-pink-500/20 border border-transparent transition-all outline-none block group cursor-pointer"
+                  >
+                    <div className="flex justify-between text-[10px] font-label text-outline uppercase tracking-wider mb-1 leading-none">
+                      <span>{topic.category}</span>
+                      <span className="text-pink-500 font-bold">{topic.postsCount} pinches</span>
+                    </div>
+                    <h4 className="font-bold text-sm text-on-surface group-hover:text-pink-500 transition-colors">
+                      {topic.hashtag}
+                    </h4>
+                    <p className="text-[11px] text-outline mt-1 font-body leading-tight">
+                      {topic.description}
+                    </p>
+                  </button>
+                ))
+              ) : (
+                // --- LIVE WEB NEWS GROUNDED VIA GEMINI SEARCH ---
+                <div className="space-y-3">
+                  {loadingNews ? (
+                    <div className="py-8 text-center space-y-2">
+                      <div className="w-7 h-7 border-2 border-pink-500 border-t-transparent rounded-full animate-spin mx-auto animate-pulse" />
+                      <p className="text-[10px] uppercase tracking-wider text-outline animate-pulse font-mono">Synchronizing Live Web...</p>
+                    </div>
+                  ) : newsError ? (
+                    <div className="p-4 bg-red-500/5 border border-red-500/20 rounded-2xl text-center space-y-2">
+                      <AlertCircle className="w-5 h-5 text-red-500 mx-auto" />
+                      <p className="text-xs text-on-surface-variant leading-relaxed">
+                        {newsError}
+                      </p>
+                      <button
+                        onClick={async () => {
+                          setLoadingNews(true);
+                          setNewsError(null);
+                          try {
+                            const res = await fetch('/api/news/trending');
+                            const data = await res.json();
+                            if (data && Array.isArray(data.news)) {
+                              setLiveNews(data.news);
+                            } else {
+                              setNewsError('Invalid feed format.');
+                            }
+                          } catch (err) {
+                            setNewsError('Could not reconnect.');
+                          } finally {
+                            setLoadingNews(false);
+                          }
+                        }}
+                        className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold text-[10px] uppercase tracking-wider rounded-lg transition-all"
+                      >
+                        Retry Connection
+                      </button>
+                    </div>
+                  ) : liveNews.length > 0 ? (
+                    liveNews.map((newsItem) => (
+                      <button
+                        key={newsItem.id}
+                        onClick={() => setSelectedNewsDetail(newsItem)}
+                        className="w-full text-left p-3 rounded-2xl bg-surface-container-lowest hover:bg-pink-500/5 hover:border-pink-500/20 border border-transparent transition-all outline-none block group cursor-pointer"
+                        id={`btn-live-news-${newsItem.id}`}
+                      >
+                        <div className="flex justify-between text-[10px] font-label text-outline uppercase tracking-wider mb-1 leading-none">
+                          <span className="font-bold text-pink-500/90">{newsItem.category}</span>
+                          <span className="text-pink-500 flex items-center gap-1">
+                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-pink-500 animate-pulse" />
+                            {newsItem.postsCount} views
+                          </span>
+                        </div>
+                        <h4 className="font-bold text-xs text-on-surface group-hover:text-pink-500 transition-colors line-clamp-1">
+                          {newsItem.title}
+                        </h4>
+                        <p className="text-[11px] text-on-surface-variant font-semibold mt-1 flex items-center gap-1 font-mono">
+                          <span className="text-outline uppercase text-[9px] font-bold">Hashtag:</span> {newsItem.hashtag}
+                        </p>
+                        <p className="text-[11px] text-outline mt-1 font-body leading-tight line-clamp-2">
+                          {newsItem.description}
+                        </p>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="text-center py-6 text-outline">
+                      <p className="text-xs font-semibold">No active news waves detected.</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </section>
 
@@ -1889,6 +2058,87 @@ export const CirclesView: React.FC<CirclesViewProps> = ({
                 >
                   <Send className="w-3.5 h-3.5" />
                   <span>Publish Moment</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* 📰 INTERACTIVE DETAILED TRENDING NEWS MODAL */}
+      <AnimatePresence>
+        {selectedNewsDetail && (
+          <div className="fixed inset-0 bg-stone-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-stone-900 border border-stone-800 text-white w-full max-w-md rounded-3xl p-6 shadow-2xl flex flex-col justify-between"
+              id="news-detail-modal"
+            >
+              <div className="flex justify-between items-center pb-4 border-b border-stone-800">
+                <div className="flex items-center gap-2">
+                  <Globe className="w-5 h-5 text-pink-500 animate-pulse" />
+                  <h3 className="font-headline font-black text-xs tracking-widest uppercase text-pink-400">Grounded Web News</h3>
+                </div>
+                <button 
+                  onClick={() => setSelectedNewsDetail(null)}
+                  className="p-1 px-2.5 bg-stone-800 hover:bg-stone-700 rounded-full text-xs font-bold cursor-pointer transition-all"
+                  id="close-news-modal-btn"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="py-5 space-y-4">
+                <div>
+                  <div className="flex justify-between items-center text-[10px] uppercase font-bold text-pink-500 tracking-wider mb-1.5 font-mono">
+                    <span>{selectedNewsDetail.category}</span>
+                    <span className="bg-pink-500/10 text-pink-400 px-2.5 py-0.5 rounded-full">{selectedNewsDetail.postsCount} readers</span>
+                  </div>
+                  <h4 className="font-headline font-extrabold text-base text-stone-100 leading-snug">
+                    {selectedNewsDetail.title}
+                  </h4>
+                </div>
+
+                <div className="p-3.5 bg-stone-950 rounded-2xl border border-stone-800 text-xs text-stone-300 leading-relaxed font-body">
+                  {selectedNewsDetail.description}
+                </div>
+
+                <div className="flex items-center gap-2 text-[11px] font-mono text-stone-400 bg-stone-950/40 p-2 rounded-xl border border-stone-800/40">
+                  <span className="font-bold text-stone-500 uppercase text-[9px]">Outlet:</span>
+                  <span className="text-pink-400 font-bold">{selectedNewsDetail.source}</span>
+                  <span className="w-1.5 h-1.5 bg-stone-700 rounded-full" />
+                  <span className="text-stone-400 select-all select-text truncate text-[10px]" title={selectedNewsDetail.url}>{selectedNewsDetail.url}</span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-4 border-t border-stone-800 flex gap-2">
+                <a
+                  href={selectedNewsDetail.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 py-2.5 px-4 bg-stone-850 hover:bg-stone-700 text-stone-200 rounded-xl text-xs font-bold uppercase tracking-wider transition-all text-center flex items-center justify-center gap-2 cursor-pointer border border-stone-800"
+                  id="link-read-full-news"
+                >
+                  <Globe className="w-3.5 h-3.5 text-pink-405" />
+                  <span>Official Article</span>
+                </a>
+                <button
+                  onClick={() => {
+                    // Pre-populate post box
+                    setNewPostText(`🚨 Debating: Let's discuss "${selectedNewsDetail.title}" (via ${selectedNewsDetail.source}). What are your thoughts? ${selectedNewsDetail.hashtag}`);
+                    // Close news modal
+                    setSelectedNewsDetail(null);
+                    // Bring user back to explore chat board
+                    setActiveFeedTab('explore');
+                  }}
+                  className="flex-grow py-2.5 px-4 bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-md shadow-pink-500/20 flex items-center justify-center gap-2 cursor-pointer"
+                  id="btn-draft-news-post"
+                >
+                  <Share2 className="w-3.5 h-3.5 animate-bounce" />
+                  <span>Sync to Feed</span>
                 </button>
               </div>
             </motion.div>

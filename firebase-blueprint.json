@@ -2,25 +2,19 @@
   "entities": {
     "User": {
       "title": "User",
-      "description": "User account settings and biometrics state",
+      "description": "User account settings, public profiles and vital metadata",
       "type": "object",
       "properties": {
         "uid": { "type": "string" },
         "name": { "type": "string" },
-        "membership": { "type": "string" },
-        "zenLevel": { "type": "number" },
+        "email": { "type": "string" },
         "avatar": { "type": "string" },
-        "notifications": { "type": "string" },
-        "themeMode": { "type": "string" },
-        "smartAlerts": { "type": "boolean" },
-        "sleepCurrent": { "type": "number" },
-        "sleepTarget": { "type": "number" },
-        "stepsCurrent": { "type": "number" },
-        "stepsTarget": { "type": "number" },
-        "waterCurrent": { "type": "number" },
-        "waterTarget": { "type": "number" }
+        "isOnline": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "membership": { "type": "string" },
+        "clockLevel": { "type": "number" }
       },
-      "required": ["uid", "name"]
+      "required": ["uid", "name", "email", "isOnline", "createdAt"]
     },
     "Reflection": {
       "title": "Reflection",
@@ -87,19 +81,33 @@
       },
       "required": ["id", "conversationId", "senderId", "senderName", "text", "isUser"]
     },
-    "Friendship": {
-      "title": "Friendship",
-      "description": "A friend request or established friendship relationship between two users",
+    "FriendRequest": {
+      "title": "FriendRequest",
+      "description": "A pending friend request between two seekers",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "senderAvatar": { "type": "string" },
+        "receiverId": { "type": "string" },
+        "receiverName": { "type": "string" },
+        "receiverAvatar": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "senderId", "receiverId", "status", "createdAt"]
+    },
+    "Friend": {
+      "title": "Friend",
+      "description": "An established alignment friendship between two user IDs",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
         "users": { "type": "array" },
-        "senderId": { "type": "string" },
-        "receiverId": { "type": "string" },
-        "status": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "users", "senderId", "receiverId", "status"]
+      "required": ["id", "users", "createdAt"]
     }
   },
   "firestore": {
@@ -111,9 +119,13 @@
       "schema": "object",
       "description": "Confidential user settings and health/vitality biometrics"
     },
-    "/friendships/{friendshipId}": {
-      "schema": "Friendship",
-      "description": "Established friendships and pending friend requests"
+    "/friend_requests/{requestId}": {
+      "schema": "FriendRequest",
+      "description": "Unresolved sent and received pending friend requests"
+    },
+    "/friends/{friendId}": {
+      "schema": "Friend",
+      "description": "Established alignment friendships between users"
     },
     "/users/{userId}/reflections/{reflectionId}": {
       "schema": "Reflection",
