@@ -527,49 +527,56 @@ export default function App() {
           });
         });
 
-        if (loadedPosts.length > 0) {
-          setCircles(prev => prev.map(c => {
-            if (c.id === circle.id) {
-              // Merge Firestore snapshots with local state to preserve hasLiked status and keep unsynced posts
-              const mergedPosts = loadedPosts.map(loadedP => {
-                const existingP = c.posts.find(p => p.id === loadedP.id);
-                return {
-                  ...loadedP,
-                  hasLiked: existingP ? !!existingP.hasLiked : false
-                };
-              });
+        const defaultCircle = initialCircles.find(c => c.id === circle.id);
+        const defaultPosts = defaultCircle ? defaultCircle.posts : [];
 
-              const unsyncedLocalPosts = c.posts.filter(p => 
-                p.id.startsWith('post_') && !mergedPosts.some(mp => mp.id === p.id)
-              );
-
-              return {
-                ...c,
-                posts: [...unsyncedLocalPosts, ...mergedPosts]
-              };
-            }
-            return c;
-          }));
-        } else {
-          const defaultCircle = initialCircles.find(c => c.id === circle.id);
-          if (defaultCircle && defaultCircle.posts.length > 0) {
-            defaultCircle.posts.forEach(async (post, idx) => {
-              const postDocRef = doc(db, 'circles', circle.id, 'posts', post.id || `post_${idx}`);
-              await setDoc(postDocRef, {
-                id: post.id || `post_${idx}`,
-                circleId: circle.id,
-                authorId: 'system_seed',
-                authorName: post.authorName,
-                authorAvatar: post.authorAvatar,
-                content: post.content,
-                timeLabel: post.timeLabel,
-                likes: post.likes || 0,
-                comments: post.comments || [],
-                createdAt: new Date(Date.now() - (idx + 1) * 3600000).toISOString()
-              });
+        // Seed missing default posts to Firestore so they are permanent for everyone
+        defaultPosts.forEach(async (post, idx) => {
+          const isMissing = !loadedPosts.some(lp => lp.id === post.id);
+          if (isMissing) {
+            const postDocRef = doc(db, 'circles', circle.id, 'posts', post.id || `post_${idx}`);
+            await setDoc(postDocRef, {
+              id: post.id || `post_${idx}`,
+              circleId: circle.id,
+              authorId: 'system_seed',
+              authorName: post.authorName,
+              authorAvatar: post.authorAvatar,
+              content: post.content,
+              timeLabel: post.timeLabel,
+              likes: post.likes || 0,
+              comments: post.comments || [],
+              createdAt: new Date(Date.now() - (idx + 1) * 3600000).toISOString()
+            }).catch(e => {
+              console.error("[DEBUG] Error seeding post:", post.id, e);
             });
           }
-        }
+        });
+
+        setCircles(prev => prev.map(c => {
+          if (c.id === circle.id) {
+            // Merge Firestore snapshots with local state to preserve hasLiked status and keep unsynced/default posts
+            const mergedPosts = loadedPosts.map(loadedP => {
+              const existingP = c.posts.find(p => p.id === loadedP.id);
+              return {
+                ...loadedP,
+                hasLiked: existingP ? !!existingP.hasLiked : false
+              };
+            });
+
+            // Make sure we also keep any default post locally until it's synced with Firestore
+            const missingDefaultPosts = defaultPosts.filter(dp => !mergedPosts.some(mp => mp.id === dp.id));
+
+            const unsyncedLocalPosts = c.posts.filter(p => 
+              p.id.startsWith('post_') && !mergedPosts.some(mp => mp.id === p.id)
+            );
+
+            return {
+              ...c,
+              posts: [...unsyncedLocalPosts, ...mergedPosts, ...missingDefaultPosts]
+            };
+          }
+          return c;
+        }));
       }, (error) => {
         handleFirestoreError(error, OperationType.LIST, `circles/${circle.id}/posts`);
       });
@@ -1287,19 +1294,6 @@ export default function App() {
             <Settings className={`w-5 h-5 ${currentTab === 'settings' ? 'stroke-[2.5px]' : 'stroke-[1.5px]'}`} />
             <span className="text-[10px] mt-1 font-label leading-none font-bold">Settings</span>
           </button>
-
-          {/* Admin Control Panel tab */}
-          {currentUserEmail === 'coopedill@gmail.com' && (
-            <button
-              onClick={() => setCurrentTab('admin')}
-              className={`flex flex-col items-center p-3 transition-colors duration-300 outline-none relative ${
-                currentTab === 'admin' ? 'text-primary font-bold' : 'text-outline hover:text-primary'
-              }`}
-            >
-              <Shield className={`w-5 h-5 ${currentTab === 'admin' ? 'stroke-[2.5px]' : 'stroke-[1.5px]'}`} />
-              <span className="text-[10px] mt-1 font-label leading-none font-bold">Admin</span>
-            </button>
-          )}
         </nav>
       )}
 

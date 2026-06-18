@@ -161,8 +161,8 @@ service cloud.firestore {
                     && (
                       // Author can completely edit or mutate with keys constraint
                       (resource.data.authorId == request.auth.uid && isValidCirclePost(request.resource.data, request.auth.uid))
-                      // Or non-authors can only alter the "likes" property
-                      || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']))
+                      // Or non-authors can only alter "likes" or "comments" properties
+                      || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'comments']))
                     );
       allow delete: if isSignedIn() && isValidId(circleId) && isValidId(postId) && resource.data.authorId == request.auth.uid;
     }
