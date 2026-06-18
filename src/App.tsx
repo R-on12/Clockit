@@ -819,7 +819,7 @@ export default function App() {
       id: postId,
       circleId,
       authorId: currentUserUid || 'anonymous',
-      authorName: `${userSettings.name} Rose`,
+      authorName: userSettings.name,
       authorAvatar: userSettings.avatar,
       content,
       timeLabel: 'Just Now',
