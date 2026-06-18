@@ -7,8 +7,10 @@
       "properties": {
         "uid": { "type": "string" },
         "name": { "type": "string" },
+        "username": { "type": "string" },
         "email": { "type": "string" },
         "avatar": { "type": "string" },
+        "profilePhoto": { "type": "string" },
         "isOnline": { "type": "boolean" },
         "createdAt": { "type": "string", "format": "date-time" },
         "membership": { "type": "string" },

@@ -58,7 +58,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   // Filtered members list
   const filteredUsers = registeredUsers.filter((u) => {
-    const matchesSearch = u.name.toLowerCase().includes(profileSearchQuery.toLowerCase());
+    if (u.isSelf) return false;
+    const matchesSearch = u.name.toLowerCase().includes(profileSearchQuery.toLowerCase()) ||
+                          (u.username && u.username.toLowerCase().includes(profileSearchQuery.toLowerCase()));
     const isPremium = u.membership?.toLowerCase().includes('premium');
     if (membershipFilter === 'premium') {
       return matchesSearch && isPremium;

@@ -243,7 +243,7 @@ export default function App() {
 
       if (userDoc.exists()) {
         const data = userDoc.data();
-        let nameToUse = data.name || finalInitialName;
+        let nameToUse = data.name || data.username || finalInitialName;
         let shouldUpdateDoc = false;
 
         // ONLY prioritize the custom pending name if it was explicitly set from an active signin/signup in localStorage
@@ -255,7 +255,7 @@ export default function App() {
           shouldUpdateDoc = true;
         }
 
-        let avatarToUse = data.avatar || initialUserSettings.avatar;
+        let avatarToUse = data.avatar || data.profilePhoto || initialUserSettings.avatar;
         if (avatarUrl && (!data.avatar || data.avatar.includes('dicebear') || data.avatar.includes('avatar.png'))) {
           avatarToUse = avatarUrl;
           shouldUpdateDoc = true;
@@ -266,6 +266,14 @@ export default function App() {
           shouldUpdateDoc = true;
         }
         if (data.isOnline !== true) {
+          shouldUpdateDoc = true;
+        }
+
+        // Recreate or migrate missing audited schema fields (username & profilePhoto)
+        if (!data.username || data.username !== nameToUse) {
+          shouldUpdateDoc = true;
+        }
+        if (!data.profilePhoto || data.profilePhoto !== avatarToUse) {
           shouldUpdateDoc = true;
         }
 
@@ -301,12 +309,14 @@ export default function App() {
         localStorage.setItem('clockit_user_settings', JSON.stringify(loadedSettings));
         
         if (shouldUpdateDoc) {
-          console.log('[DEBUG] updating existing user profile document in Firestore:', { nameToUse, finalEmail, isOnline: true });
+          console.log('[DEBUG] updating and migrating existing user profile document in Firestore:', { nameToUse, finalEmail, isOnline: true });
           await setDoc(userDocRef, {
             uid,
             name: nameToUse,
+            username: nameToUse,
             email: finalEmail,
             avatar: avatarToUse,
+            profilePhoto: avatarToUse,
             isOnline: true,
             createdAt: data.createdAt || new Date().toISOString(),
             membership: loadedSettings.membership,
@@ -323,8 +333,10 @@ export default function App() {
         const publicDoc = {
           uid: uid,
           name: finalInitialName,
+          username: finalInitialName,
           email: finalEmail,
           avatar: avatarToUse,
+          profilePhoto: avatarToUse,
           isOnline: true,
           createdAt: new Date().toISOString(),
           membership: 'Premium Member',
@@ -1308,9 +1320,9 @@ export default function App() {
             <div className="overflow-y-auto flex-1 space-y-2 pr-1 min-h-[220px] max-h-[350px]">
               {loadingUsersDir ? (
                 <div className="text-center py-10 text-xs text-outline">Searching registered directory...</div>
-              ) : registeredUsersList.filter(u => u.name.toLowerCase().includes(usersDirSearch.toLowerCase())).length > 0 ? (
+              ) : registeredUsersList.filter(u => !u.isSelf && (u.name.toLowerCase().includes(usersDirSearch.toLowerCase()) || (u.username && u.username.toLowerCase().includes(usersDirSearch.toLowerCase())))).length > 0 ? (
                 registeredUsersList
-                  .filter(u => u.name.toLowerCase().includes(usersDirSearch.toLowerCase()))
+                  .filter(u => !u.isSelf && (u.name.toLowerCase().includes(usersDirSearch.toLowerCase()) || (u.username && u.username.toLowerCase().includes(usersDirSearch.toLowerCase()))))
                   .map((u) => (
                     <button
                       key={u.uid}

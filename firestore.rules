@@ -26,6 +26,8 @@ service cloud.firestore {
         && data.uid.size() <= 128 
         && data.name is string 
         && data.name.size() <= 100
+        && (!('username' in data) || (data.username is string && data.username.size() <= 128))
+        && (!('profilePhoto' in data) || (data.profilePhoto is string && data.profilePhoto.size() <= 1024))
         && (!('email' in data) || (data.email is string && data.email.size() <= 128))
         && (!('avatar' in data) || (data.avatar is string && data.avatar.size() <= 1024))
         && (!('isOnline' in data) || (data.isOnline is bool))

@@ -68,6 +68,7 @@ export const FriendsView: React.FC<FriendsViewProps> = ({
 
   const filteredDiscover = discoverUsers.filter(u =>
     u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (u.username && u.username.toLowerCase().includes(searchQuery.toLowerCase())) ||
     (u.membership && u.membership.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
@@ -79,7 +80,8 @@ export const FriendsView: React.FC<FriendsViewProps> = ({
   });
 
   const filteredFriends = friendsList.filter(u =>
-    u.name.toLowerCase().includes(searchQuery.toLowerCase())
+    u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (u.username && u.username.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   // 3. Pending requests

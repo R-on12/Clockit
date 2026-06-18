@@ -55,7 +55,7 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
       </section>
 
       {/* Registered Directory Quick Connect */}
-      {registeredUsers && registeredUsers.length > 0 && (
+      {registeredUsers && registeredUsers.filter((u) => !u.isSelf).length > 0 && (
         <section className="mb-6 -mt-4 bg-surface-container-low/20 p-4 rounded-3xl border border-outline-variant/10" id="quick-connect-registered-members">
           <div className="flex items-center justify-between mb-3 px-1">
             <span className="font-headline text-xs font-bold text-primary uppercase tracking-wider">Quick Connect Directory</span>
@@ -64,7 +64,7 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
               className="text-primary text-xs font-semibold hover:underline bg-primary/5 px-2.5 py-1 rounded-full text-[11px]"
               id="view-all-registered-members-link"
             >
-              Search ({registeredUsers.length})
+              Search ({registeredUsers.filter((u) => !u.isSelf).length})
             </button>
           </div>
           <div className="flex items-center gap-4 overflow-x-auto pb-2 pt-1 scrollbar-none scroll-smooth">
@@ -83,7 +83,7 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
             </button>
 
             {/* List users */}
-            {registeredUsers.map((user) => (
+            {registeredUsers.filter((u) => !u.isSelf).map((user) => (
               <button
                 key={user.uid}
                 onClick={() => onStartDirectChat?.(user.uid, user.name, user.avatar)}
@@ -105,7 +105,7 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
                   <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-surface rounded-full"></span>
                 </div>
                 <span className="text-[11px] font-medium text-on-surface truncate w-14 text-center group-hover:text-primary transition-colors">
-                  {user.isSelf ? 'You' : user.name.split(' ')[0]}
+                  {user.name.split(' ')[0]}
                 </span>
               </button>
             ))}
