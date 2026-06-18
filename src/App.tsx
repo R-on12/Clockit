@@ -84,11 +84,15 @@ export default function App() {
           uid: doc.id,
           name: data.name || 'Anonymous Member',
           avatar: data.avatar || '',
+          email: data.email || '',
+          isOnline: data.isOnline ?? false,
+          createdAt: data.createdAt || null,
           membership: data.membership || 'Registered Member',
           clockLevel: data.clockLevel ?? data.zenLevel ?? 12,
           isSelf: doc.id === currentUserUid
         });
       });
+      console.log(`[DEBUG] Syncing users collection. Total registered: ${fetched.length}`);
       setRegisteredUsersList(fetched);
       setLoadingUsersDir(false);
     }, (error) => {
@@ -1063,6 +1067,7 @@ export default function App() {
         defaultName={userSettings.name} 
         onAuthSuccess={async (uid, userName, email) => { 
           setCurrentUserUid(uid);
+          setCurrentUserEmail(email || null);
           setIsLoggedIn(true); 
           await loadOrCreateUser(uid, userName, auth.currentUser?.photoURL || undefined, email || undefined);
         }} 
@@ -1266,6 +1271,19 @@ export default function App() {
             <Settings className={`w-5 h-5 ${currentTab === 'settings' ? 'stroke-[2.5px]' : 'stroke-[1.5px]'}`} />
             <span className="text-[10px] mt-1 font-label leading-none font-bold">Settings</span>
           </button>
+
+          {/* Admin Control Panel tab */}
+          {currentUserEmail === 'coopedill@gmail.com' && (
+            <button
+              onClick={() => setCurrentTab('admin')}
+              className={`flex flex-col items-center p-3 transition-colors duration-300 outline-none relative ${
+                currentTab === 'admin' ? 'text-primary font-bold' : 'text-outline hover:text-primary'
+              }`}
+            >
+              <Shield className={`w-5 h-5 ${currentTab === 'admin' ? 'stroke-[2.5px]' : 'stroke-[1.5px]'}`} />
+              <span className="text-[10px] mt-1 font-label leading-none font-bold">Admin</span>
+            </button>
+          )}
         </nav>
       )}
 

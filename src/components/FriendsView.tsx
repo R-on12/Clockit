@@ -9,6 +9,9 @@ interface AppUser {
   clockLevel?: number;
   zenLevel?: number;
   isSelf?: boolean;
+  email?: string;
+  isOnline?: boolean;
+  createdAt?: string | null;
 }
 
 interface Friendship {
