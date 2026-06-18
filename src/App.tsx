@@ -80,10 +80,14 @@ export default function App() {
       const fetched: any[] = [];
       snapshot.forEach((doc) => {
         const data = doc.data();
+        const displayName = data.name || 'Anonymous Member';
+        const displayAvatar = data.avatar || '';
         fetched.push({
           uid: doc.id,
-          name: data.name || 'Anonymous Member',
-          avatar: data.avatar || '',
+          name: displayName,
+          username: data.username || displayName,
+          avatar: displayAvatar,
+          profilePhoto: data.profilePhoto || displayAvatar,
           email: data.email || '',
           isOnline: data.isOnline ?? false,
           createdAt: data.createdAt || null,
