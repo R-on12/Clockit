@@ -515,6 +515,7 @@ export default function App() {
           const data = postDoc.data();
           loadedPosts.push({
             id: postDoc.id,
+            authorId: data.authorId || null,
             authorName: data.authorName,
             authorAvatar: data.authorAvatar,
             content: data.content,
@@ -523,7 +524,9 @@ export default function App() {
             hasLiked: false,
             comments: data.comments || [],
             mediaUrl: data.mediaUrl || null,
-            mediaType: data.mediaType || null
+            mediaType: data.mediaType || null,
+            createdAt: data.createdAt || null,
+            circleId: data.circleId || circle.id
           });
         });
 
@@ -570,9 +573,18 @@ export default function App() {
               p.id.startsWith('post_') && !mergedPosts.some(mp => mp.id === p.id)
             );
 
+            const allPostsCombined = [...unsyncedLocalPosts, ...mergedPosts, ...missingDefaultPosts];
+            
+            // Sort combined posts by createdAt desc to keep correct order of the timeline
+            allPostsCombined.sort((a, b) => {
+              const valA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+              const valB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+              return valB - valA;
+            });
+
             return {
               ...c,
-              posts: [...unsyncedLocalPosts, ...mergedPosts, ...missingDefaultPosts]
+              posts: allPostsCombined
             };
           }
           return c;
