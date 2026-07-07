@@ -32,7 +32,9 @@ import {
   getDocFromServer,
   updateDoc,
   deleteDoc,
-  where
+  where,
+  arrayUnion,
+  arrayRemove
 } from 'firebase/firestore';
 import { db, auth, logoutUser, handleFirestoreError, OperationType } from './firebase';
 
@@ -105,6 +107,154 @@ export default function App() {
     });
     return () => unsubscribe();
   }, [isLoggedIn, currentUserUid]);
+
+  // Seed default demo users in Firestore if missing
+  useEffect(() => {
+    if (!isLoggedIn || !currentUserUid) return;
+
+    const seedDemoUsers = async () => {
+      const demoUsers = [
+        {
+          uid: 'member_jack',
+          name: 'Jack',
+          username: 'Jack',
+          avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
+          profilePhoto: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
+          email: 'jack@gmail.com',
+          isOnline: true,
+          membership: 'Zen Master',
+          clockLevel: 18,
+          createdAt: new Date(Date.now() - 3600 * 24 * 5 * 1000).toISOString()
+        },
+        {
+          uid: 'member_elena',
+          name: 'Elena',
+          username: 'Elena',
+          avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80',
+          profilePhoto: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80',
+          email: 'elena@gmail.com',
+          isOnline: true,
+          membership: 'Prana Seeker',
+          clockLevel: 14,
+          createdAt: new Date(Date.now() - 3600 * 24 * 3 * 1000).toISOString()
+        },
+        {
+          uid: 'member_ronnie',
+          name: 'Ronnie',
+          username: 'Ronnie',
+          avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
+          profilePhoto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
+          email: 'ronnie@gmail.com',
+          isOnline: true,
+          membership: 'Registered Member',
+          clockLevel: 12,
+          createdAt: new Date(Date.now() - 3600 * 24 * 10 * 1000).toISOString()
+        }
+      ];
+
+      for (const du of demoUsers) {
+        if (du.uid === currentUserUid) continue;
+
+        const uDocRef = doc(db, 'users', du.uid);
+        const uDoc = await getDoc(uDocRef);
+        if (!uDoc.exists()) {
+          console.log(`[DEBUG] Seeding missing demo user: ${du.name}`);
+          await setDoc(uDocRef, du).catch(err => console.error('[DEBUG] Failed to seed user:', du.name, err));
+        }
+      }
+    };
+
+    seedDemoUsers();
+  }, [isLoggedIn, currentUserUid]);
+
+  // Automated Acceptance of Friend Requests sent to Demo Users
+  useEffect(() => {
+    if (!currentUserUid || !isLoggedIn) return;
+
+    const requestsRef = collection(db, 'friend_requests');
+    const q = query(requestsRef, where('senderId', '==', currentUserUid));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        const receiverId = data.receiverId;
+        const status = data.status;
+
+        if (['member_jack', 'member_elena', 'member_ronnie'].includes(receiverId) && status === 'pending') {
+          const reqId = docSnap.id;
+          console.log(`[DEBUG] Auto-accepting friend request to demo user ${receiverId}. ReqId: ${reqId}`);
+          setTimeout(async () => {
+            const reqRef = doc(db, 'friend_requests', reqId);
+            const friendRef = doc(db, 'friends', reqId);
+            
+            const currentReq = await getDoc(reqRef);
+            if (currentReq.exists()) {
+              await setDoc(friendRef, {
+                id: reqId,
+                users: [currentUserUid, receiverId],
+                createdAt: new Date().toISOString()
+              }).catch(err => console.error('[DEBUG] Auto-accept friendship failed:', err));
+
+              await deleteDoc(reqRef).catch(err => console.error('[DEBUG] Auto-delete req failed:', err));
+              console.log(`[DEBUG] Successfully auto-accepted friendship ${reqId}`);
+            }
+          }, 1500);
+        }
+      });
+    });
+
+    return () => unsubscribe();
+  }, [currentUserUid, isLoggedIn]);
+
+  // Dynamically populate conversations list with wellness_guide and any accepted friends
+  useEffect(() => {
+    if (!currentUserUid || !isLoggedIn) return;
+
+    const baseConv = initialConversations;
+
+    const activeFriends = friendships
+      .filter(f => f.status === 'accepted')
+      .map(f => {
+        const friendUid = f.users.find((uid: string) => uid !== currentUserUid);
+        return friendUid;
+      })
+      .filter(Boolean);
+
+    const friendConversations: Conversation[] = activeFriends.map(friendUid => {
+      const friendData = registeredUsersList.find(u => u.uid === friendUid);
+      const name = friendData ? friendData.name : 'Zen Seeker';
+      const avatar = friendData ? friendData.avatar : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80';
+      
+      return {
+        id: friendUid,
+        name,
+        avatar,
+        subLabel: 'Mindful Friend',
+        isGroup: false,
+        lastMessage: 'A new silent channel formed.',
+        unreadCount: 0,
+        timeLabel: 'JUST NOW',
+        online: true,
+        messages: []
+      };
+    });
+
+    setConversations(prev => {
+      const merged = [...prev];
+      
+      if (!merged.some(c => c.id === 'wellness_guide')) {
+        merged.unshift(baseConv[0]);
+      }
+
+      friendConversations.forEach(friendConv => {
+        if (!merged.some(c => c.id === friendConv.id)) {
+          merged.push(friendConv);
+        }
+      });
+
+      return merged;
+    });
+  }, [currentUserUid, isLoggedIn, friendships, registeredUsersList]);
 
   // Realtime Friendships Subscriber (combining friend_requests and friends collections)
   useEffect(() => {
@@ -436,70 +586,85 @@ export default function App() {
     return () => unsubscribe();
   }, [currentUserUid]);
 
-  // 4. Realtime Chat Messages Synchronizer & Pre-populate Default Dialogues
+  // 4. Realtime Chat Messages Synchronizer for ALL active conversations
   useEffect(() => {
-    if (!currentUserUid) return;
+    if (!currentUserUid || conversations.length === 0) return;
 
-    const messagesRef = collection(db, 'users', currentUserUid, 'conversations', activeConversationId, 'messages');
-    const q = query(messagesRef, orderBy('createdAt', 'asc'));
+    console.log('[DEBUG] Initializing real-time message listeners for conversations:', conversations.map(c => c.id));
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const loadedMessages: Message[] = [];
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        loadedMessages.push({
-          id: doc.id,
-          senderId: data.senderId,
-          senderName: data.senderName,
-          senderAvatar: data.senderAvatar,
-          text: data.text,
-          timestamp: data.timestamp,
-          timeLabel: data.timeLabel,
-          isUser: data.isUser,
-          isItalic: data.isItalic,
-          attachment: data.attachment
-        });
-      });
+    const unsubscribes = conversations.map(conversation => {
+      const messagesRef = collection(db, 'users', currentUserUid, 'conversations', conversation.id, 'messages');
+      const q = query(messagesRef, orderBy('createdAt', 'asc'));
 
-      if (loadedMessages.length > 0) {
-        setConversations(prev => prev.map(c => {
-          if (c.id === activeConversationId) {
-            return {
-              ...c,
-              messages: loadedMessages,
-              lastMessage: loadedMessages[loadedMessages.length - 1].text,
-              timeLabel: 'Active'
-            };
-          }
-          return c;
-        }));
-      } else {
-        const defaultConv = initialConversations.find(c => c.id === activeConversationId);
-        if (defaultConv && defaultConv.messages.length > 0) {
-          defaultConv.messages.forEach(async (msg, index) => {
-            const msgDocRef = doc(db, 'users', currentUserUid, 'conversations', activeConversationId, 'messages', msg.id || `msg_init_${index}`);
-            await setDoc(msgDocRef, {
-              id: msg.id || `msg_init_${index}`,
-              conversationId: activeConversationId,
-              senderId: msg.senderId,
-              senderName: msg.senderName,
-              senderAvatar: msg.senderAvatar || '',
-              text: msg.text,
-              timestamp: msg.timestamp,
-              timeLabel: msg.timeLabel,
-              isUser: msg.isUser,
-              isItalic: msg.isItalic || false,
-              createdAt: new Date(Date.now() - (defaultConv.messages.length - index) * 60000).toISOString()
-            });
+      return onSnapshot(q, (snapshot) => {
+        const loadedMessages: Message[] = [];
+        snapshot.forEach(docSnap => {
+          const data = docSnap.data();
+          const isUser = data.senderId === currentUserUid;
+
+          loadedMessages.push({
+            id: docSnap.id,
+            senderId: data.senderId,
+            senderName: data.senderName,
+            senderAvatar: data.senderAvatar,
+            text: data.text,
+            timestamp: data.timestamp,
+            timeLabel: data.timeLabel,
+            isUser: isUser,
+            isItalic: data.isItalic || false,
+            attachment: data.attachment || null
           });
+        });
+
+        if (loadedMessages.length > 0) {
+          setConversations(prev => prev.map(c => {
+            if (c.id === conversation.id) {
+              const lastMsg = loadedMessages[loadedMessages.length - 1];
+              // Calculate unread count: if the last message is not sent by us, and we are not currently active in this chat, increment unread count
+              const unreadCount = (lastMsg.senderId !== currentUserUid && activeConversationId !== conversation.id) ? 1 : 0;
+              return {
+                ...c,
+                messages: loadedMessages,
+                lastMessage: lastMsg.text,
+                timeLabel: 'Active',
+                unreadCount: unreadCount
+              };
+            }
+            return c;
+          }));
+        } else {
+          // If no messages exist in Firestore yet, write defaults if it is a default conversation
+          const defaultConv = initialConversations.find(c => c.id === conversation.id);
+          if (defaultConv && defaultConv.messages.length > 0) {
+            defaultConv.messages.forEach(async (msg, index) => {
+              const msgDocRef = doc(db, 'users', currentUserUid, 'conversations', conversation.id, 'messages', msg.id || `msg_init_${index}`);
+              await setDoc(msgDocRef, {
+                id: msg.id || `msg_init_${index}`,
+                conversationId: conversation.id,
+                senderId: msg.senderId,
+                senderName: msg.senderName,
+                senderAvatar: msg.senderAvatar || '',
+                text: msg.text,
+                timestamp: msg.timestamp,
+                timeLabel: msg.timeLabel,
+                isUser: msg.senderId === currentUserUid,
+                isItalic: msg.isItalic || false,
+                createdAt: new Date(Date.now() - (defaultConv.messages.length - index) * 60000).toISOString()
+              }).catch(err => {
+                console.error('[DEBUG] Failed to write default message:', err);
+              });
+            });
+          }
         }
-      }
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, `users/${currentUserUid}/conversations/${activeConversationId}/messages`);
+      }, (error) => {
+        console.error(`Error listening to messages for conversation ${conversation.id}:`, error);
+      });
     });
 
-    return () => unsubscribe();
-  }, [currentUserUid, activeConversationId]);
+    return () => {
+      unsubscribes.forEach(unsub => unsub());
+    };
+  }, [currentUserUid, conversations.map(c => c.id).join(','), activeConversationId]);
 
   // 5. Realtime Circle Posts & Comments Subscriber
   useEffect(() => {
@@ -513,6 +678,9 @@ export default function App() {
         const loadedPosts: any[] = [];
         snapshot.forEach(postDoc => {
           const data = postDoc.data();
+          const likedByArray = data.likedBy || [];
+          const hasLiked = currentUserUid ? likedByArray.includes(currentUserUid) : false;
+
           loadedPosts.push({
             id: postDoc.id,
             authorId: data.authorId || null,
@@ -521,7 +689,8 @@ export default function App() {
             content: data.content,
             timeLabel: data.timeLabel || 'Recent',
             likes: data.likes || 0,
-            hasLiked: false,
+            hasLiked: hasLiked,
+            likedBy: likedByArray,
             comments: data.comments || [],
             mediaUrl: data.mediaUrl || null,
             mediaType: data.mediaType || null,
@@ -547,6 +716,7 @@ export default function App() {
               content: post.content,
               timeLabel: post.timeLabel,
               likes: post.likes || 0,
+              likedBy: [],
               comments: post.comments || [],
               createdAt: new Date(Date.now() - (idx + 1) * 3600000).toISOString()
             }).catch(e => {
@@ -557,23 +727,14 @@ export default function App() {
 
         setCircles(prev => prev.map(c => {
           if (c.id === circle.id) {
-            // Merge Firestore snapshots with local state to preserve hasLiked status and keep unsynced/default posts
-            const mergedPosts = loadedPosts.map(loadedP => {
-              const existingP = c.posts.find(p => p.id === loadedP.id);
-              return {
-                ...loadedP,
-                hasLiked: existingP ? !!existingP.hasLiked : false
-              };
-            });
-
-            // Make sure we also keep any default post locally until it's synced with Firestore
-            const missingDefaultPosts = defaultPosts.filter(dp => !mergedPosts.some(mp => mp.id === dp.id));
+            // Keep any default post locally until it's synced with Firestore
+            const missingDefaultPosts = defaultPosts.filter(dp => !loadedPosts.some(mp => mp.id === dp.id));
 
             const unsyncedLocalPosts = c.posts.filter(p => 
-              p.id.startsWith('post_') && !mergedPosts.some(mp => mp.id === p.id)
+              p.id.startsWith('post_') && !loadedPosts.some(mp => mp.id === p.id)
             );
 
-            const allPostsCombined = [...unsyncedLocalPosts, ...mergedPosts, ...missingDefaultPosts];
+            const allPostsCombined = [...unsyncedLocalPosts, ...loadedPosts, ...missingDefaultPosts];
             
             // Sort combined posts by createdAt desc to keep correct order of the timeline
             allPostsCombined.sort((a, b) => {
@@ -595,7 +756,7 @@ export default function App() {
     });
 
     return () => unsubscribes.forEach(unsub => unsub());
-  }, [isLoggedIn]);
+  }, [isLoggedIn, currentUserUid]);
 
   // Atmospheric guide notifications backport 
   useEffect(() => {
@@ -686,10 +847,104 @@ export default function App() {
     }));
 
     if (currentUserUid) {
+      // 1. Write to current user's conversation folder
       const msgDocRef = doc(db, 'users', currentUserUid, 'conversations', activeConversationId, 'messages', msgId);
       await setDoc(msgDocRef, newMessage).catch(err => {
         handleFirestoreError(err, OperationType.CREATE, `users/${currentUserUid}/conversations/${activeConversationId}/messages/${msgId}`);
       });
+
+      // 2. Dual-write to recipient user's folder if it's a peer direct chat (and not the wellness guide)
+      if (activeConversationId !== 'wellness_guide') {
+        const recipientMsgDocRef = doc(db, 'users', activeConversationId, 'conversations', currentUserUid, 'messages', msgId);
+        await setDoc(recipientMsgDocRef, {
+          ...newMessage,
+          conversationId: currentUserUid,
+          isUser: false // From their perspective, they are receiving it
+        }).catch(err => {
+          console.error('[DEBUG] Failed to dual-write to recipient:', err);
+        });
+      }
+
+      // 3. Trigger Simulated Responses for Wellness Guide and Demo Friends in Firestore
+      const isGuide = activeConversationId === 'wellness_guide';
+      const isDemoFriend = ['member_jack', 'member_elena', 'member_ronnie'].includes(activeConversationId);
+
+      if (isGuide || isDemoFriend) {
+        setTimeout(async () => {
+          let responses: string[] = [];
+          let senderName = '';
+          let senderAvatar = '';
+
+          if (isGuide) {
+            responses = [
+              "Thank you for sharing that with me. In this quiet harbor, every thought is welcome. Let us take a slow breath together.",
+              "I hear you clearly. Remember that stillness is not the absence of sound or storm, but peace within them.",
+              "That is a beautiful reflection. Allow yourself to just be, for a moment, without any need to perform or produce.",
+              "A wonderful reflection. Keep centering your thoughts. Would you like to begin a quick breathing session?"
+            ];
+            senderName = 'Wellness Guide';
+            senderAvatar = 'https://lh3.googleusercontent.com/aida-public/AB6AXuCE54NSPHbX_rB2bvgKiljuvd5-JlEpnq-PUTJroJhuoDHf8xcICcz1SdKGAXQTPgd9Lnf_1RQ2gK2uGfCED5UyyvSaHTvRE5Tz7QlNVB2bwiWB7kMRx-wa1malx4rt3pw8wlFV29vnBaAjSHXeef8ImZjwK3zi6McOGsVOQfVV6TcJlBsCQeAZcMtfwmzbjPQi8z6lxFlk80nkQMGfINcD8OkpUc_O9sqIAmBZPmOFzanAnArGrcRF8NtpqJneZWDZJSb8xU980Xue';
+          } else if (activeConversationId === 'member_jack') {
+            responses = [
+              "Whoa, that's incredibly mindful! I'm actually out in nature right now, just absorbing the forest vibes.",
+              "I completely resonance with that. Intention is the anchor that centers us through the daily hustle.",
+              "Totally. It's so easy to get caught up in notifications, but taking a step back makes all the difference.",
+              "Amazing. Hey, have you tried doing a quick 4-7-8 breathing pacing session today? It's highly recommended!"
+            ];
+            senderName = 'Jack';
+            senderAvatar = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80';
+          } else if (activeConversationId === 'member_elena') {
+            responses = [
+              "This is so beautiful. Grounded energy is truly contagious. Thank you for sharing this moment of peace!",
+              "I love that. One mindful step, one conscious breath at a time. It's how we co-create alignment.",
+              "Excellent observation. I'm focusing on recovery today, and this completely fits my vibe.",
+              "Aura pulse frequency aligning beautifully. Keep breathing smoothly and deeply, friend!"
+            ];
+            senderName = 'Elena';
+            senderAvatar = 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80';
+          } else if (activeConversationId === 'member_ronnie') {
+            responses = [
+              "Vibrational harmony detected! Your biometric flows are looking super stable.",
+              "That's exactly what I needed to hear. Stillness is the presence of absolute clarity.",
+              "Sending an aura of pure tranquility, warm light, and centered mindfulness your way! ❤️",
+              "Yes! Let's keep supporting each other's alignment journey. We've got this!"
+            ];
+            senderName = 'Ronnie';
+            senderAvatar = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80';
+          }
+
+          const chosenText = responses[Math.floor(Math.random() * responses.length)];
+          const replyMsgId = `msg_reply_${Date.now()}`;
+          const replyMessage = {
+            id: replyMsgId,
+            conversationId: activeConversationId,
+            senderId: activeConversationId,
+            senderName,
+            senderAvatar,
+            text: chosenText,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            timeLabel: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            isUser: false,
+            isItalic: false,
+            attachment: null,
+            createdAt: new Date().toISOString()
+          };
+
+          // Write reply to user's conversation folder
+          const replyDocRef = doc(db, 'users', currentUserUid, 'conversations', activeConversationId, 'messages', replyMsgId);
+          await setDoc(replyDocRef, replyMessage).catch(err => console.error('[DEBUG] Failed to save reply:', err));
+
+          // If friend, also dual-write reply to their folder
+          if (isDemoFriend) {
+            const recipientReplyDocRef = doc(db, 'users', activeConversationId, 'conversations', currentUserUid, 'messages', replyMsgId);
+            await setDoc(recipientReplyDocRef, {
+              ...replyMessage,
+              conversationId: currentUserUid,
+              isUser: true // From their perspective, they sent it!
+            }).catch(err => console.error('[DEBUG] Failed to dual-write reply:', err));
+          }
+        }, 3000);
+      }
     }
   };
 
@@ -913,7 +1168,14 @@ export default function App() {
           ...c,
           posts: c.posts.map(p => {
             if (p.id === postId) {
-              return { ...p, hasLiked: liked, likes: nextLikes };
+              return { 
+                ...p, 
+                hasLiked: liked, 
+                likes: nextLikes,
+                likedBy: liked 
+                  ? [...(p.likedBy || []), currentUserUid || ''].filter(Boolean)
+                  : (p.likedBy || []).filter(uid => uid !== currentUserUid)
+              };
             }
             return p;
           })
@@ -922,12 +1184,15 @@ export default function App() {
       return c;
     }));
 
-    const postDocRef = doc(db, 'circles', circleId, 'posts', postId);
-    await updateDoc(postDocRef, {
-      likes: nextLikes
-    }).catch(err => {
-      handleFirestoreError(err, OperationType.UPDATE, `circles/${circleId}/posts/${postId}`);
-    });
+    if (currentUserUid) {
+      const postDocRef = doc(db, 'circles', circleId, 'posts', postId);
+      await updateDoc(postDocRef, {
+        likes: nextLikes,
+        likedBy: liked ? arrayUnion(currentUserUid) : arrayRemove(currentUserUid)
+      }).catch(err => {
+        handleFirestoreError(err, OperationType.UPDATE, `circles/${circleId}/posts/${postId}`);
+      });
+    }
   };
 
   const handleAddComment = async (circleId: string, postId: string, commentContent: string) => {

@@ -141,7 +141,8 @@ service cloud.firestore {
     match /users/{userId}/conversations/{conversationId}/messages/{messageId} {
       allow get: if isOwner(userId) && isValidId(userId) && isValidId(conversationId) && isValidId(messageId);
       allow list: if isOwner(userId) && isValidId(userId) && isValidId(conversationId);
-      allow create: if isOwner(userId) && isValidId(userId) && isValidId(conversationId) && isValidId(messageId)
+      allow create: if (isOwner(userId) || (isSignedIn() && conversationId == request.auth.uid))
+                    && isValidId(userId) && isValidId(conversationId) && isValidId(messageId)
                     && isValidChatMessage(request.resource.data);
       allow update: if false; // Messages are immutable once sent
       allow delete: if isOwner(userId) && isValidId(userId) && isValidId(conversationId) && isValidId(messageId);
@@ -161,8 +162,8 @@ service cloud.firestore {
                     && (
                       // Author can completely edit or mutate with keys constraint
                       (resource.data.authorId == request.auth.uid && isValidCirclePost(request.resource.data, request.auth.uid))
-                      // Or non-authors can only alter "likes" or "comments" properties
-                      || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'comments']))
+                      // Or non-authors can only alter "likes", "comments", or "likedBy" properties
+                      || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'comments', 'likedBy']))
                     );
       allow delete: if isSignedIn() && isValidId(circleId) && isValidId(postId) && resource.data.authorId == request.auth.uid;
     }
