@@ -507,7 +507,7 @@ export default function App() {
 
     const unsubscribes = circles.map(circle => {
       const postsRef = collection(db, 'circles', circle.id, 'posts');
-      const q = query(postsRef, orderBy('createdAt', 'desc'));
+      const q = query(postsRef);
 
       return onSnapshot(q, (snapshot) => {
         const loadedPosts: any[] = [];
@@ -889,6 +889,7 @@ export default function App() {
       content: newPost.content,
       timeLabel: newPost.timeLabel,
       likes: newPost.likes,
+      comments: [],
       createdAt: newPost.createdAt,
       mediaUrl: mediaUrl || '',
       mediaType: mediaType || 'none'
