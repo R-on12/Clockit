@@ -367,7 +367,9 @@ export default function App() {
         setCurrentUserUid(user.uid);
         setCurrentUserEmail(user.email || null);
         setIsLoggedIn(true);
-        await loadOrCreateUser(user.uid, user.displayName || 'Ronnie', user.photoURL || undefined, user.email || undefined);
+        const emailFallbackName = user.email ? user.email.split('@')[0] : 'Zen Seeker';
+        const nameToUse = user.displayName || emailFallbackName;
+        await loadOrCreateUser(user.uid, nameToUse, user.photoURL || undefined, user.email || undefined);
       } else {
         setCurrentUserUid(null);
         setCurrentUserEmail(null);
@@ -388,8 +390,8 @@ export default function App() {
       console.log(`[DEBUG] checked existing docs. userDocExists: ${userDoc.exists()}, vitalsDocExists: ${vitalsDoc.exists()}`);
 
       const pendingName = localStorage.getItem('clockit_pending_nickname');
-      let finalInitialName = initialName;
-      if (pendingName && pendingName !== 'Ronnie' && pendingName !== 'Jack') {
+      let finalInitialName = initialName || pendingName || 'Zen Seeker';
+      if (pendingName) {
         finalInitialName = pendingName;
       }
 
@@ -400,7 +402,15 @@ export default function App() {
         let nameToUse = data.name || data.username || finalInitialName;
         let shouldUpdateDoc = false;
 
-        // ONLY prioritize the custom pending name if it was explicitly set from an active signin/signup in localStorage
+        // Self-healing check: If the name stored in Firestore is 'Ronnie' or 'Zen Seeker', but we have a better/specific display name/nickname,
+        // we override the incorrect name and update Firestore so the user doesn't get stuck as 'Ronnie'.
+        if ((nameToUse === 'Ronnie' || nameToUse === 'Zen Seeker' || !data.name) && 
+            finalInitialName && finalInitialName !== 'Ronnie' && finalInitialName !== 'Zen Seeker') {
+          nameToUse = finalInitialName;
+          shouldUpdateDoc = true;
+        }
+
+        // ALSO check pendingName for explicit update priority
         if (pendingName && pendingName !== data.name) {
           nameToUse = pendingName;
           shouldUpdateDoc = true;
