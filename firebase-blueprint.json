@@ -110,6 +110,21 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "users", "createdAt"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "A user support ticket, app review, or feedback submission",
+      "type": "object",
+      "properties": {
+        "userName": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "userAvatar": { "type": "string" },
+        "category": { "type": "string" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "status": { "type": "string" }
+      },
+      "required": ["userName", "userEmail", "category", "text", "createdAt", "status"]
     }
   },
   "firestore": {
@@ -144,6 +159,10 @@
     "/users/{userId}/conversations/{conversationId}/messages/{messageId}": {
       "schema": "ChatMessage",
       "description": "Direct and wellness guide message histories"
+    },
+    "/reviews/{reviewId}": {
+      "schema": "Review",
+      "description": "Submitted support, feedback and wellness platform review tickets"
     }
   }
 }
